@@ -3,4 +3,4 @@ scipy>=1.10
 scikit-learn>=1.2
 matplotlib>=3.7
 Pillow>=9.5
-pytest>=7.3
+pytest>=9.0.3
