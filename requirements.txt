@@ -1,6 +1,6 @@
 numpy>=2.4.6
 scipy>=1.17.1
 scikit-learn>=1.8.0
-matplotlib>=3.10.9
+matplotlib>=3.11.0
 Pillow>=12.2.0
 pytest>=9.0.3
