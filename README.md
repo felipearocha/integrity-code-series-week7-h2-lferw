@@ -1,22 +1,35 @@
-# INTEGRITY CODE SERIES -- Week 7
+# INTEGRITY CODE SERIES — Week 7
 ## Hydrogen Conversion of Aging LF-ERW Pipeline: Coupled Diffusion-Fracture Life Prediction
 
+[![CI](https://github.com/felipearocha/integrity_code_series_week7_h2_lferw/actions/workflows/ci.yml/badge.svg)](https://github.com/felipearocha/integrity_code_series_week7_h2_lferw/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
+[![Tests: 182 passing](https://img.shields.io/badge/tests-182%20passing-brightgreen.svg)](tests)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20172481.svg)](https://doi.org/10.5281/zenodo.20172481)
 
-### Problem Statement
+---
+
+## Problem Statement
 
 Can a 1959-vintage 20-inch API 5L X52 low-frequency ERW pipeline with pre-existing selective seam corrosion pits be safely converted from natural gas to hydrogen service?
 
 This is the same pipe specification that failed at Willow River, Minnesota on January 16, 2026 (PHMSA Corrective Action Order).
 
-### News Hooks (March 2026)
+## News Hooks (March 2026)
 
 - AMPP Pipeline Industry Report 2026: corrosion incidents rose to 25%+ of all pipeline failures
 - PHMSA Corrective Action Order on Willow River LF-ERW explosion
 - ASME absorbing B31.12 hydrogen requirements into B31.8 (2026 edition)
 - 3,072 miles of pre-1970 pipe in Minnesota alone, 209 miles of unknown vintage
 
-### Governing Physics (5-mechanism sequential chain)
+## Governing Equations
+
+Every constant is tagged `[ASSUMED]` (requires experimental calibration) or is a
+published standard / physical-constant value. Full rendered (MathJax) reference:
+**[docs/equations.html](docs/equations.html)** — open in any browser.
+
+The physics is a 5-mechanism sequential chain:
 
 1. **Hydrogen diffusion PDE** (Oriani stress-assisted Fick's law):
    dC_L/dt = D_L * d2C_L/dx2 + D_L * (V_H/RT) * d/dx(C_L * dsigma_h/dx)
@@ -34,13 +47,13 @@ This is the same pipe specification that failed at Willow River, Minnesota on Ja
 5. **Failure criterion**:
    K_max >= K_IC(C_H) = K_IC_air * exp(-lambda * C_H / C_ref)
 
-### Repository Structure
+## Repository Structure
 
 ```
 integrity_code_series_week7_h2_lferw/
     src/
         config.py                    # All parameters, [ASSUMED] flags
-        hydrogen_diffusion.py        # 1D radial H diffusion PDE
+        hydrogen_diffusion.py        # 1D through-wall H diffusion PDE
         pit_to_crack.py              # Murakami SIF, transition criteria
         ha_fcg.py                    # HA-FCG + integrated life engine
         monte_carlo.py               # MC + LHS parametric sweep
@@ -49,13 +62,14 @@ integrity_code_series_week7_h2_lferw/
         visualization.py             # All plots + animated GIF
     tests/
         test_suite.py                # 182 tests
-    assets/                          # Generated visuals
-    notebooks/                       # Optional Jupyter notebooks
+    docs/
+        equations.html               # Rendered (MathJax) governing equations
+    assets/                          # Generated visuals + surrogate model
     README.md
     requirements.txt
 ```
 
-### Execution Order
+## Execution Order
 
 ```bash
 # 1. Install dependencies
@@ -123,7 +137,7 @@ print('All outputs generated in assets/')
 "
 ```
 
-### Key Assumptions Requiring Experimental Calibration
+## Key Assumptions Requiring Experimental Calibration
 
 All parameters flagged [ASSUMED] in config.py. Critical ones:
 
@@ -133,42 +147,56 @@ All parameters flagged [ASSUMED] in config.py. Critical ones:
 - ERW seam toughness K_IC and threshold K_th: must be measured on actual seam material in pressurized H2
 - Seam enhancement factor f_seam: depends on specific manufacturing vintage
 
-### Escalation from Previous Weeks
+## Escalation Table
 
-| Dimension | Week 5 (MIC) | Week 6 (Galvanic) | Week 7 (H2+LF-ERW) |
+| Dimension | Week 5 (MIC) | Week 6 (Galvanic) | **Week 7 (H2+LF-ERW)** |
 |---|---|---|---|
-| Physics coupling | Reaction-diffusion ODE | 2D Laplace + BV | Transport PDE + fracture ODE |
-| Mechanism chain | Single (biofilm + acid) | Single (galvanic) | 5-mechanism sequential |
-| Probabilistic | Parametric sweep only | MCMC inverse | Monte Carlo 10,000 + LHS |
-| Spatial | 1D chainage | 2D cross-section | 1D radial + through-wall |
-| Regulatory | None | None | ASME B31.12 / PHMSA mapping |
+| Physics coupling | Reaction-diffusion ODE | 2D Laplace + BV | **Transport PDE + fracture ODE** |
+| Mechanism chain | Single (biofilm + acid) | Single (galvanic) | **5-mechanism sequential** |
+| Probabilistic | Parametric sweep only | MCMC inverse | **Monte Carlo 10,000 + LHS** |
+| Spatial | 1D chainage | 2D cross-section | **1D radial + through-wall** |
+| Regulatory | None | None | **ASME B31.12 / PHMSA mapping** |
 
-### Cybersecurity
+## Cybersecurity (STRIDE)
 
 7 threats documented (STRIDE + data poisoning). SHA-256 hash-chain audit logging.
-Sensor spoofing detection for ILI data. Physics monotonicity check for training data integrity.
+Sensor spoofing detection for ILI data. Physics monotonicity check for training data
+integrity. See `src/cybersecurity.py`.
 
-### License
+## Anti-Hallucination Note
 
-Educational and research use. Not for production engineering decisions without
-experimental calibration of all [ASSUMED] parameters.
+Every parameter in `config.py` is either a published standard / physical-constant value
+or explicitly flagged `[ASSUMED]`. The tags are applied honestly across three tiers:
 
-## Integrity Code Series
+- **T1 — standard / handbook / measured:** physical constants (Faraday, gas constant),
+  API 5L X52 specification values (SMYS 358 MPa, SMTS 455 MPa), the ASME B31.12 design
+  factor 0.50 (Table PL-3.7.1), and the partial molar volume of H in Fe (literature
+  consensus).
+- **T2 — established closed-form derivations:** the Lame thick-cylinder stress field,
+  Barlow hoop stress, the Murakami √area surface-defect SIF, the El Haddad short-crack
+  size, the simplified Newman-Raju surface-crack SIF, and the Paris-law form.
+- **T3 — `[ASSUMED]` phenomenological fits requiring calibration:** the Sievert's
+  constant S, lattice diffusivity D_L, the hydrogen-degradation exponents (lambda_K,
+  lambda_th), the HA-FCG enhancement parameters (alpha_H, beta_H), the ERW-seam
+  toughness/threshold values, the pit-growth constants (k_pit, n_pit, f_seam), and the
+  B31.12 material performance factor H_f.
 
-Part of an ongoing series of physics-first integrity simulators by Felipe Rocha:
+No equation, constant, or citation in this repository is invented: T3 values are marked
+`[ASSUMED]` at the point of use and must be measured in pressurized hydrogen before any
+engineering application.
 
-| # | Repo | Domain |
-|---|---|---|
-| Week 3 | [Integrity-code-series-3](https://github.com/felipearocha/Integrity-code-series-3) | F1 lap simulation (six coupled ODEs) |
-| Week 6 | [Integrity-code-series-week6-smartphone-galvanic](https://github.com/felipearocha/Integrity-code-series-week6-smartphone-galvanic) | Smartphone galvanic corrosion (Laplace + Butler-Volmer) |
-| Week 7 | [integrity_code_series_week7_h2_lferw](https://github.com/felipearocha/integrity_code_series_week7_h2_lferw) | LF-ERW H2 conversion (B31.12 + NACE TM0316) |
-| Week 8 | [integrity-code-series-week8-creep-fatigue-heater](https://github.com/felipearocha/integrity-code-series-week8-creep-fatigue-heater) | Creep-fatigue 9Cr-1Mo (Norton/Omega + Coffin-Manson) |
-| Week 9 | [integrity-code-series-week9-cui](https://github.com/felipearocha/integrity-code-series-week9-cui) | CUI thermohygro-electrochemical (3 PDEs, Strang) |
-| Week 10 | [integrity-code-series-week-10_nnph_scc](https://github.com/felipearocha/integrity-code-series-week-10_nnph_scc) | NNpHSCC full-physics (Chen-Sutherby-Xing + BS 7910) |
-| Bonus | [Vibration-Accelerated-Corrosion-Coupled-Mechano-Electrochemical-Simulation](https://github.com/felipearocha/Vibration-Accelerated-Corrosion-Coupled-Mechano-Electrochemical-Simulation) | Vibration-accelerated corrosion (SDOF + Butler-Volmer + Archard) |
-| Bonus | [synthetic-integrity-digital-twin-piml](https://github.com/felipearocha/synthetic-integrity-digital-twin-piml) | Physics-informed neural-network surrogate |
-| Bonus | [integrity-data-foundation](https://github.com/felipearocha/integrity-data-foundation) | Engineering data validation baseline |
----
+## Disclaimer
+
+Research tool only. Not for design, fitness-for-service, or safety-critical decisions
+without site-specific calibration and independent PE review.
+
+Not for production engineering decisions without experimental calibration of all
+`[ASSUMED]` parameters. The hydrogen-degradation and HA-FCG enhancement functions are
+phenomenological fits, not measured constants.
+
+## License
+
+MIT — Felipe Rocha. See [LICENSE](LICENSE).
 
 ## How to Cite
 
@@ -192,12 +220,23 @@ If this software contributes to your work, please cite both the software (this r
 }
 ```
 
-The two DOIs Zenodo provides are:
-
-| DOI                                  | What it points to                                                  |
-|--------------------------------------|--------------------------------------------------------------------|
-| `10.5281/zenodo.20172481` (concept)   | Always resolves to the latest version - use this for citation.     |
-| `10.5281/zenodo.20172482` (version)   | Pinned to v1.0.1 specifically - use when reproducibility matters.  |
+| DOI | Points to |
+|-----|-----------|
+| [`10.5281/zenodo.20172481`](https://doi.org/10.5281/zenodo.20172481) (concept) | Always resolves to the latest version — use this for citation. |
+| [`10.5281/zenodo.20172482`](https://doi.org/10.5281/zenodo.20172482) (version) | Pinned to v1.0.1 specifically — use when reproducibility matters. |
 
 A machine-readable citation file is also available in [`CITATION.cff`](CITATION.cff) - GitHub will display a "Cite this repository" widget at the top right of the repo page that exports BibTeX / APA / RIS automatically.
 
+## Integrity Code Series
+
+Part of an ongoing series of physics-first integrity simulators by Felipe Rocha:
+
+| # | Repo | Domain |
+|---|---|---|
+| Week 3 | [Integrity-code-series-3](https://github.com/felipearocha/Integrity-code-series-3) | F1 lap simulation (six coupled ODEs) |
+| Week 6 | [integrity-code-series-week6-smartphone-galvanic](https://github.com/felipearocha/Integrity-code-series-week6-smartphone-galvanic) | Smartphone galvanic corrosion (Laplace + Butler-Volmer) |
+| **Week 7** | **[integrity_code_series_week7_h2_lferw](https://github.com/felipearocha/integrity_code_series_week7_h2_lferw)** | **LF-ERW H2 conversion (B31.12 + NACE TM0316) — this repo** |
+| Week 8 | [integrity-code-series-week8-creep-fatigue-heater](https://github.com/felipearocha/integrity-code-series-week8-creep-fatigue-heater) | Creep-fatigue 9Cr-1Mo (Norton/Omega + Coffin-Manson) |
+| Week 9 | [integrity-code-series-week9-cui](https://github.com/felipearocha/integrity-code-series-week9-cui) | CUI thermohygro-electrochemical (3 PDEs, Strang) |
+| Week 10 | [integrity-code-series-week-10_nnph_scc](https://github.com/felipearocha/integrity-code-series-week-10_nnph_scc) | NNpHSCC full-physics (Chen-Sutherby-Xing + BS 7910) |
+| Week 11 | [integrity-code-series-week11-erosion-corrosion-multiphase](https://github.com/felipearocha/integrity-code-series-week11-erosion-corrosion-multiphase) | Erosion-corrosion multiphase (NORSOK M-506 + DNV-RP-O501 + G119 + API 579) |
