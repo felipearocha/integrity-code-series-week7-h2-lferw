@@ -1,7 +1,7 @@
 # INTEGRITY CODE SERIES — Week 7
 ## Hydrogen Conversion of Aging LF-ERW Pipeline: Coupled Diffusion-Fracture Life Prediction
 
-[![CI](https://github.com/felipearocha/integrity_code_series_week7_h2_lferw/actions/workflows/ci.yml/badge.svg)](https://github.com/felipearocha/integrity_code_series_week7_h2_lferw/actions/workflows/ci.yml)
+[![CI](https://github.com/felipearocha/integrity-code-series-week7-h2-lferw/actions/workflows/ci.yml/badge.svg)](https://github.com/felipearocha/integrity-code-series-week7-h2-lferw/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![Tests: 182 passing](https://img.shields.io/badge/tests-182%20passing-brightgreen.svg)](tests)
@@ -25,7 +25,7 @@ This is the same pipe specification that failed at Willow River, Minnesota on Ja
 
 ## Governing Equations
 
-[**view the full rendered reference**](https://htmlpreview.github.io/?https://github.com/felipearocha/integrity_code_series_week7_h2_lferw/blob/main/docs/equations.html)
+[**view the full rendered reference**](https://htmlpreview.github.io/?https://github.com/felipearocha/integrity-code-series-week7-h2-lferw/blob/main/docs/equations.html)
 
 Every constant is tagged `[ASSUMED]` (requires experimental calibration) or is a
 published standard / physical-constant value. The physics is a 5-mechanism
@@ -68,7 +68,7 @@ Full rendered (MathJax) reference with sources and code cross-references:
 ## Repository Structure
 
 ```
-integrity_code_series_week7_h2_lferw/
+integrity-code-series-week7-h2-lferw/
     src/
         config.py                    # All parameters, [ASSUMED] flags
         hydrogen_diffusion.py        # 1D through-wall H diffusion PDE
@@ -251,10 +251,10 @@ Part of an ongoing series of physics-first integrity simulators by Felipe Rocha:
 
 | # | Repo | Domain |
 |---|---|---|
-| Week 3 | [Integrity-code-series-3](https://github.com/felipearocha/Integrity-code-series-3) | F1 lap simulation (six coupled ODEs) |
-| Week 6 | [integrity-code-series-week6-smartphone-galvanic](https://github.com/felipearocha/Integrity-code-series-week6-smartphone-galvanic) | Smartphone galvanic corrosion (Laplace + Butler-Volmer) |
-| **Week 7** | **[integrity_code_series_week7_h2_lferw](https://github.com/felipearocha/integrity_code_series_week7_h2_lferw)** | **LF-ERW H2 conversion (B31.12 + NACE TM0316) — this repo** |
+| Week 3 | [integrity-code-series-week3-f1-lap-simulation](https://github.com/felipearocha/integrity-code-series-week3-f1-lap-simulation) | F1 lap simulation (six coupled ODEs) |
+| Week 6 | [integrity-code-series-week6-smartphone-galvanic](https://github.com/felipearocha/integrity-code-series-week6-smartphone-galvanic) | Smartphone galvanic corrosion (Laplace + Butler-Volmer) |
+| **Week 7** | **[integrity-code-series-week7-h2-lferw](https://github.com/felipearocha/integrity-code-series-week7-h2-lferw)** | **LF-ERW H2 conversion (B31.12 + NACE TM0316) — this repo** |
 | Week 8 | [integrity-code-series-week8-creep-fatigue-heater](https://github.com/felipearocha/integrity-code-series-week8-creep-fatigue-heater) | Creep-fatigue 9Cr-1Mo (Norton/Omega + Coffin-Manson) |
 | Week 9 | [integrity-code-series-week9-cui](https://github.com/felipearocha/integrity-code-series-week9-cui) | CUI thermohygro-electrochemical (3 PDEs, Strang) |
-| Week 10 | [integrity-code-series-week-10_nnph_scc](https://github.com/felipearocha/integrity-code-series-week-10_nnph_scc) | NNpHSCC full-physics (Chen-Sutherby-Xing + BS 7910) |
+| Week 10 | [integrity-code-series-week10-nnph-scc](https://github.com/felipearocha/integrity-code-series-week10-nnph-scc) | NNpHSCC full-physics (Chen-Sutherby-Xing + BS 7910) |
 | Week 11 | [integrity-code-series-week11-erosion-corrosion-multiphase](https://github.com/felipearocha/integrity-code-series-week11-erosion-corrosion-multiphase) | Erosion-corrosion multiphase (NORSOK M-506 + DNV-RP-O501 + G119 + API 579) |

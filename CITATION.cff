@@ -7,8 +7,8 @@ authors:
     given-names: Felipe
     affiliation: "Independent Researcher"
     # orcid: "https://orcid.org/0000-0000-0000-0000"  # TODO: replace once ORCID is provisioned
-repository-code: "https://github.com/felipearocha/integrity_code_series_week7_h2_lferw"
-url: "https://github.com/felipearocha/integrity_code_series_week7_h2_lferw"
+repository-code: "https://github.com/felipearocha/integrity-code-series-week7-h2-lferw"
+url: "https://github.com/felipearocha/integrity-code-series-week7-h2-lferw"
 abstract: >
   Coupled diffusion-fracture life prediction for converting a 1959-vintage 20-inch API 5L X52 low-frequency electric-resistance-welded (LF-ERW) pipeline with pre-existing selective seam corrosion pits from natural-gas to hydrogen service. The package implements a five-mechanism sequential chain: Oriani stress-assisted Fick hydrogen diffusion PDE Power-law pit growth at the ERW seam from prior NG service Murakami plus El-Haddad pit-to-crack transition Hydrogen-assisted fatigue crack growth (modified Paris) Failure criterion against hydrogen-degraded K_IC Anchored to the 2026 PHMSA Corrective Action Order at Willow River, Minnesota and ASME B31.8/B31.12 (2026 edition) hydrogen blending requirements. 182 unit and integration tests.
 keywords:
@@ -39,5 +39,5 @@ identifiers:
     value: "10.5281/zenodo.20172482"
     description: "Version DOI (pinned to v1.0.1)"
   - type: url
-    value: "https://github.com/felipearocha/integrity_code_series_week7_h2_lferw/releases/tag/v1.0.1"
+    value: "https://github.com/felipearocha/integrity-code-series-week7-h2-lferw/releases/tag/v1.0.1"
     description: "GitHub release tag v1.0.1"
