@@ -25,27 +25,45 @@ This is the same pipe specification that failed at Willow River, Minnesota on Ja
 
 ## Governing Equations
 
+[**view the full rendered reference**](https://htmlpreview.github.io/?https://github.com/felipearocha/integrity_code_series_week7_h2_lferw/blob/main/docs/equations.html)
+
 Every constant is tagged `[ASSUMED]` (requires experimental calibration) or is a
-published standard / physical-constant value. Full rendered (MathJax) reference:
+published standard / physical-constant value. The physics is a 5-mechanism
+sequential chain; the headline equations are reproduced below (GitHub renders the
+math natively).
+
+**1. Hydrogen diffusion — Oriani stress-assisted Fick's law** (`src/hydrogen_diffusion.py`):
+
+$$ \frac{\partial C_L}{\partial t} \;=\; D_L\,\frac{\partial^2 C_L}{\partial x^2} \;+\; D_L\,\frac{V_H}{RT}\,\frac{\partial}{\partial x}\!\left(C_L\,\frac{\partial \sigma_h}{\partial x}\right) $$
+
+with Sievert's-law inner-surface boundary condition:
+
+$$ C_L(0,t) = C_0 = S\sqrt{p_{H_2}}, \qquad C_L(w,t) = 0, \qquad C_L(x,0) = 0 $$
+
+**2. Pit growth at the ERW seam** (power law from prior NG service, `src/pit_to_crack.py`):
+
+$$ a_{\text{pit}}(t) \;=\; k_{\text{pit}}\,f_{\text{seam}}\,t^{\,n_{\text{pit}}} $$
+
+**3. Pit-to-crack transition** (Murakami $\sqrt{\text{area}}$ SIF vs hydrogen-degraded threshold):
+
+$$ K_{\text{pit}} \;=\; 0.65\,\sigma\,\sqrt{\pi\sqrt{\text{area}}}, \qquad \text{area} = \frac{\pi}{2}\,c\,a, \qquad c = (c/a)\,a $$
+
+$$ K_{th}(C_H) \;=\; K_{th,\text{air}}\,\exp\!\left(-\lambda_{th}\,\frac{C_H}{C_{\text{ref}}}\right), \qquad K_{th}(C_H) \ge K_{th,\min} $$
+
+**4. Hydrogen-assisted fatigue crack growth** (modified Paris law, `src/ha_fcg.py`):
+
+$$ \frac{da}{dN} \;=\; C_{\text{paris}}\,(\Delta K)^{m}\,\bigl[\,1 + \alpha_H\,(C_H/C_{\text{ref}})^{\beta_H}\,\bigr] $$
+
+**5. Failure criterion** (hydrogen-degraded toughness):
+
+$$ K_{\max} \;\ge\; K_{IC}(C_H), \qquad K_{IC}(C_H) = K_{IC,\text{air}}\,\exp\!\left(-\lambda_K\,\frac{C_H}{C_{\text{ref}}}\right), \qquad K_{IC}(C_H) \ge K_{IC,\min} $$
+
+**MAOP under ASME B31.12** (`src/ha_fcg.py → maop_under_b3112`):
+
+$$ P \;=\; \frac{2\,\text{SMYS}\,t\,F\,H_f}{D} $$
+
+Full rendered (MathJax) reference with sources and code cross-references:
 **[docs/equations.html](docs/equations.html)** — open in any browser.
-
-The physics is a 5-mechanism sequential chain:
-
-1. **Hydrogen diffusion PDE** (Oriani stress-assisted Fick's law):
-   dC_L/dt = D_L * d2C_L/dx2 + D_L * (V_H/RT) * d/dx(C_L * dsigma_h/dx)
-   BC: C(0) = S*sqrt(p_H2), C(w) = 0
-
-2. **Pit growth at ERW seam** (power law from NG service):
-   a_pit = k * f_seam * t^n
-
-3. **Pit-to-crack transition** (Murakami + El Haddad):
-   K_pit = 0.65 * sigma * sqrt(pi * sqrt(area)) >= K_th(C_H)
-
-4. **Hydrogen-assisted fatigue crack growth** (modified Paris law):
-   da/dN = C_paris * dK^m * [1 + alpha_H * (C_H/C_ref)^beta_H]
-
-5. **Failure criterion**:
-   K_max >= K_IC(C_H) = K_IC_air * exp(-lambda * C_H / C_ref)
 
 ## Repository Structure
 
