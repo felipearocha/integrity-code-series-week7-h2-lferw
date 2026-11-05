@@ -172,24 +172,21 @@ def solve_diffusion(
     t_stored.append(0.0)
     C_stored.append(C.copy())
 
+    d2sigma_dx2 = (sigma_h[2:] - 2.0 * sigma_h[1:-1] + sigma_h[:-2]) / dx ** 2
+    dsigma_dx_in = dsigma_dx[1:-1]
+
     t_current = 0.0
     for step in range(1, n_steps + 1):
         C_new = C.copy()
 
         # Interior nodes: explicit finite differences
-        for i in range(1, n - 1):
-            # Standard diffusion term
-            d2C_dx2 = (C[i + 1] - 2.0 * C[i] + C[i - 1]) / dx ** 2
+        d2C_dx2 = (C[2:] - 2.0 * C[1:-1] + C[:-2]) / dx ** 2
 
-            # Stress-assisted term: d/dx(C * dsigma/dx)
-            # = dC/dx * dsigma/dx + C * d2sigma/dx2
-            dC_dx = (C[i + 1] - C[i - 1]) / (2.0 * dx)
-            d2sigma_dx2_i = (sigma_h[min(i + 1, n - 1)] - 2.0 * sigma_h[i]
-                             + sigma_h[max(i - 1, 0)]) / dx ** 2
+        # Stress term: d/dx(C * dsigma/dx) = dC/dx * dsigma/dx + C * d2sigma/dx2
+        dC_dx = (C[2:] - C[:-2]) / (2.0 * dx)
+        stress_term = stress_coeff * (dC_dx * dsigma_dx_in + C[1:-1] * d2sigma_dx2)
 
-            stress_term = stress_coeff * (dC_dx * dsigma_dx[i] + C[i] * d2sigma_dx2_i)
-
-            C_new[i] = C[i] + dt * D_L * (d2C_dx2 + stress_term)
+        C_new[1:-1] = C[1:-1] + dt * D_L * (d2C_dx2 + stress_term)
 
         # Enforce BCs
         C_new[0] = C_0
