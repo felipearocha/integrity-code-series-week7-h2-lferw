@@ -3,7 +3,7 @@ INTEGRITY CODE SERIES -- Week 7
 Run the full chain: diffusion, life prediction, Monte Carlo, LHS sweep,
 GBR surrogate and every figure in assets/.
 
-    python run_all.py           # 10,000 MC + 2,000 LHS, writes to assets/ (several hours)
+    python run_all.py           # 10,000 MC + 2,000 LHS on all cores, writes to assets/
     python run_all.py --quick   # 20 MC + 60 LHS, writes to a temp folder (about 2 minutes)
 """
 
@@ -34,6 +34,7 @@ def main():
     cfg = default_config()
     geom, mat, h2t, he = cfg["geom"], cfg["mat"], cfg["h2_transport"], cfg["h2_embrittlement"]
     pit, ops, sim = cfg["pit"], cfg["ops"], cfg["sim"]
+    workers = os.cpu_count() or 1
     out = os.path.join(os.path.dirname(os.path.abspath(__file__)), "assets")
     if args.quick:
         sim.n_mc_samples, sim.n_lhs_samples = 20, 60
@@ -50,13 +51,13 @@ def main():
     print(f"Failure mode: {life.failure_mode}")
 
     print(f"Running Monte Carlo ({sim.n_mc_samples:,} samples)...")
-    mc = run_monte_carlo(geom, mat, h2t, he, pit, ops, sim)
+    mc = run_monte_carlo(geom, mat, h2t, he, pit, ops, sim, workers=workers)
     print(f"P5={mc.percentile_5:.1f} yr, P50={mc.percentile_50:.1f} yr, "
           f"P95={mc.percentile_95:.1f} yr")
     print(f"Fraction below 10yr: {mc.fraction_below_10yr:.1%}")
 
     print(f"Running LHS sweep ({sim.n_lhs_samples:,} samples)...")
-    lhs = run_lhs_sweep(geom, mat, h2t, he, pit, ops, sim)
+    lhs = run_lhs_sweep(geom, mat, h2t, he, pit, ops, sim, workers=workers)
     print("Spearman correlations:")
     for k, v in sorted(lhs.spearman_correlations.items(), key=lambda x: -abs(x[1])):
         print(f"  {k}: {v:.3f}")
@@ -76,7 +77,7 @@ def main():
     plot_iso_risk_contour(lhs.params, lhs.remaining_life_years, lhs.param_names,
                           save_path=os.path.join(out, "iso_risk_contour.png"),
                           surrogate_model=surr.model)
-    plot_fad(life, geom, mat, he, save_path=os.path.join(out, "fad.png"))
+    plot_fad(life, geom, mat, he, ops.p_max_MPa, save_path=os.path.join(out, "fad.png"))
     generate_gif(diff, life, geom, save_path=os.path.join(out, "h2_crack_evolution.gif"))
     print(f"All outputs generated in {out}")
 

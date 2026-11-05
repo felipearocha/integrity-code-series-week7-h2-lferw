@@ -8,7 +8,7 @@ Outputs:
     3. Sensitivity tornado (Spearman)
     4. Surrogate parity + feature importance
     5. Iso-risk contour: remaining life vs (p_H2, pit_depth) with 10yr boundary
-    6. Failure Assessment Diagram (FAD) per API 579-1 / BS 7910
+    6. Failure Assessment Diagram (FAD), BS 7910 Option 1 curve
     7. Animated GIF with color-mapped wall concentration
 """
 
@@ -386,9 +386,9 @@ def plot_iso_risk_contour(lhs_params, lhs_lives, param_names,
 
 
 # ============================================================
-# 6. FAILURE ASSESSMENT DIAGRAM (FAD) per API 579-1 / BS 7910
+# 6. FAILURE ASSESSMENT DIAGRAM (FAD), BS 7910 Option 1 curve
 # ============================================================
-def plot_fad(life_result, geom, mat, he,
+def plot_fad(life_result, geom, mat, he, p_max_MPa,
              save_path="assets/fad.png"):
     """
     Failure Assessment Diagram.
@@ -431,7 +431,7 @@ def plot_fad(life_result, geom, mat, he,
         for i in range(n_pts):
             a_i = life_result.crack_history_a[i]
             C_H_i = life_result.crack_history_C_H[i]
-            sigma_max = hoop_stress(geom, 7.0)  # operating pressure
+            sigma_max = hoop_stress(geom, p_max_MPa)
 
             K_app = newman_raju_simplified(sigma_max, a_i, geom.wall_thickness_m)
             K_IC_H = degraded_toughness(mat.K_IC_air_seam_MPa_sqrtm, C_H_i, he)
