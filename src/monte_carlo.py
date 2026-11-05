@@ -73,7 +73,7 @@ def _map_samples(jobs, workers):
     if workers <= 1:
         return [_sample_life(j) for j in jobs]
     with ProcessPoolExecutor(max_workers=workers) as pool:
-        return list(pool.map(_sample_life, jobs, chunksize=20))
+        return list(pool.map(_sample_life, jobs, chunksize=4))
 
 
 def latin_hypercube_sample(n_samples: int, n_dims: int, seed: int = 42) -> np.ndarray:
