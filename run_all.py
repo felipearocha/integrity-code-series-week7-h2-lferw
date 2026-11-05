@@ -4,7 +4,7 @@ Run the full chain: diffusion, life prediction, Monte Carlo, LHS sweep,
 GBR surrogate and every figure in assets/.
 
     python run_all.py           # 10,000 MC + 2,000 LHS, writes to assets/ (several hours)
-    python run_all.py --quick   # 20 MC + 60 LHS, writes to a temp folder (about 3 minutes)
+    python run_all.py --quick   # 20 MC + 60 LHS, writes to a temp folder (about 2 minutes)
 """
 
 import argparse
