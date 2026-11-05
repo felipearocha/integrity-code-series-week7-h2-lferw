@@ -5,15 +5,16 @@ Pit Growth at ERW Seam and Pit-to-Crack Transition
 Phase 1: Pit nucleation and growth during natural gas service
     a_pit(t) = k_pit * f_seam * t^n_pit
 
-Phase 2: Stress intensity at pit tip (Murakami's sqrt(area) parameter)
-    K_pit = 0.65 * sigma * sqrt(pi * sqrt(area_pit))
+Phase 2: Stress intensity range at pit tip (Murakami's sqrt(area) parameter)
+    dK_pit = 0.65 * dsigma * sqrt(pi * sqrt(area_pit))
 
     For semi-elliptical surface pit:
         area_pit = (pi/4) * (2c) * a = (pi/2) * c * a
     where a = pit depth, c = pit half-length along surface
 
 Phase 3: Pit-to-crack transition criterion
-    Transition occurs when K_pit >= K_th(C_H)
+    Transition occurs when dK_pit >= K_th(C_H). K_th is a threshold on the
+    stress intensity range, so it is compared with the cyclic stress range.
     where K_th is degraded by local hydrogen concentration
 
     K_th(C_H) = K_th_air * exp(-lambda_th * C_H / C_ref)
@@ -21,7 +22,7 @@ Phase 3: Pit-to-crack transition criterion
 
 Alternative transition (El Haddad):
     Transition when pit depth a >= a_th (intrinsic defect size)
-    a_th = (1/pi) * (K_th / (F * sigma))^2
+    a_th = (1/pi) * (K_th / (F * dsigma))^2
     where F is geometry factor
 
 Both criteria checked; transition at whichever is met first.
@@ -42,7 +43,7 @@ class PitState:
     """Current state of pit at ERW seam."""
     depth_m: float               # pit depth a [m]
     half_length_m: float         # pit half-length c [m]
-    K_pit_MPa_sqrtm: float       # stress intensity at pit tip
+    K_pit_MPa_sqrtm: float       # stress intensity range at pit tip
     is_crack: bool               # has pit transitioned to crack?
     transition_year: float       # year of pit-to-crack transition (-1 if not yet)
 
@@ -189,7 +190,7 @@ def evaluate_pit_state(
     Evaluate whether a pit at the ERW seam has transitioned to a crack.
 
     Checks two criteria:
-    1. Murakami K_pit >= K_th(C_H)  [stress intensity criterion]
+    1. Murakami dK_pit >= K_th(C_H)  [stress intensity range criterion]
     2. a_pit >= a_th (El Haddad)     [intrinsic defect size criterion]
 
     Parameters
@@ -215,16 +216,16 @@ def evaluate_pit_state(
     pit_depth_m = min(pit_depth_m, 0.8 * geom.wall_thickness_m)
 
     half_length, area = pit_geometry(pit_depth_m, aspect_ratio)
-    sigma_h = hoop_stress(geom, ops.p_max_MPa)
+    dsigma = hoop_stress(geom, ops.p_max_MPa) - hoop_stress(geom, ops.p_min_MPa)
 
-    # Stress intensity at pit
-    K_pit = murakami_sif(sigma_h, area)
+    # Stress intensity range at pit
+    K_pit = murakami_sif(dsigma, area)
 
     # Hydrogen-degraded threshold (at ERW seam)
     K_th_H = degraded_threshold(mat.K_th_air_seam_MPa_sqrtm, C_H_at_pit, he)
 
     # El Haddad depth
-    a_th = el_haddad_threshold_depth(K_th_H, sigma_h)
+    a_th = el_haddad_threshold_depth(K_th_H, dsigma)
 
     # Transition criteria
     criterion_1 = K_pit >= K_th_H

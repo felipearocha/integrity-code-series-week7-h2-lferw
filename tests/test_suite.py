@@ -1260,6 +1260,30 @@ class LifeStub:
 
 
 # ============================================================
+# PIT-TO-CRACK TRANSITION USES THE STRESS RANGE
+# ============================================================
+class TestTransitionUsesRange:
+    def test_shallow_pit_stays_a_pit(self, cfg):
+        """a = 0.15 mm, c/a = 2, area = pi a^2. sigma_max = 280, dsigma = 140 MPa.
+
+        K at sigma_max = 5.25 exceeds K_th = 3.5, but dK = 2.63 does not.
+        El Haddad a_th = (3.5 / (1.12 * 140))^2 / pi = 0.159 mm > a.
+        """
+        s = evaluate_pit_state(cfg["geom"], cfg["mat"], cfg["pit"], cfg["ops"],
+                               cfg["h2_embrittlement"], C_H_at_pit=0.0,
+                               pit_depth_m=0.15e-3, aspect_ratio=2.0)
+        assert abs(s.K_pit_MPa_sqrtm - 2.63) < 0.02
+        assert not s.is_crack
+
+    def test_deeper_pit_transitions(self, cfg):
+        """a = 0.5 mm: dK = 4.8 > K_th = 3.5."""
+        s = evaluate_pit_state(cfg["geom"], cfg["mat"], cfg["pit"], cfg["ops"],
+                               cfg["h2_embrittlement"], C_H_at_pit=0.0,
+                               pit_depth_m=0.5e-3, aspect_ratio=2.0)
+        assert s.is_crack
+
+
+# ============================================================
 # T. REGRESSION: LOCKED BASELINES (4 tests)
 # ============================================================
 class TestRegression:
