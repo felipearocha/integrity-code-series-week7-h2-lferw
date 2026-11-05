@@ -27,7 +27,7 @@ Stress field (elastic, Lame solution for thick cylinder under internal pressure)
     sigma_z        = p*ri^2/(ro^2-ri^2)  [closed-end condition]
     sigma_h        = (sigma_r + sigma_theta + sigma_z) / 3
 
-Discretization: Method of Lines with central differences in space, RK45 in time.
+Discretization: central differences in space, explicit forward Euler in time.
 """
 
 import numpy as np

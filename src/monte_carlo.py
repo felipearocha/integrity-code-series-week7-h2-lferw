@@ -89,7 +89,7 @@ def run_monte_carlo(
     Run Monte Carlo simulation for probabilistic remaining life.
 
     Samples uncertain parameters and runs life prediction for each.
-    Uses a shared diffusion solution (recomputed only when D_L changes).
+    The diffusion solution is recomputed for every sample (D_L is sampled).
     For speed, uses reduced max_cycles for MC.
 
     Returns

@@ -13,11 +13,11 @@ where the hydrogen enhancement function is:
 Stress intensity factor for semi-elliptical surface crack in cylinder:
     K = F * sigma * sqrt(pi * a)
 
-    where F is the Newman-Raju geometry factor (simplified as F=1.12 for
-    surface crack with a/t < 0.5 and a/c < 1.0).
+    where F is a simplified Newman-Raju geometry factor:
+    F = 1.12 * sqrt(sec(pi*a / (2*t))).
 
     Note: Full Newman-Raju solution depends on a/t, a/c, and angular position.
-    [ASSUMED] simplified constant F=1.12 is used here. For production use,
+    [ASSUMED] this simplified F is used here. For production use,
     implement the full parametric Newman-Raju solution.
 
 Failure criterion:
@@ -61,12 +61,9 @@ def newman_raju_simplified(sigma_MPa: float, a_m: float, t_m: float) -> float:
 
     K = F * sigma * sqrt(pi * a)
 
-    F = 1.12 for a/t < 0.5 (shallow crack).
-    For deeper cracks, apply Folias-type correction:
-        F = 1.12 * (1 + 0.12 * (1 - a/(2*c))^2) * f_w(a/t)
-    where f_w = [sec(pi*a / (2*t))]^0.5 (finite width correction)
-
-    [ASSUMED] aspect ratio a/c = 0.5 (equivalent to c/a = 2.0 from PitGrowth default)
+    F = 1.12 * f_w(a/t)
+    where f_w = [sec(pi*a / (2*t))]^0.5 (finite width correction),
+    with a/t capped at 0.95. Aspect ratio a/c does not enter this form.
 
     Parameters
     ----------
