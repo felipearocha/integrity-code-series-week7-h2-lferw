@@ -1,10 +1,14 @@
 """
 INTEGRITY CODE SERIES -- Week 7
-Hydrogen Diffusion Through Pipe Wall: Stress-Assisted Fick's Law (Oriani)
+Hydrogen Diffusion Through Pipe Wall: Fick's Law With a Stress-Drift Term
 
 Governing PDE (1D through-wall, thin-wall approximation):
 
-    dC_L/dt = D_L * d2C_L/dx2 + D_L * (V_H / RT) * d/dx(C_L * dsigma_h/dx)
+    dC_L/dt = D_L * d2C_L/dx2 - D_L * (V_H / RT) * d/dx(C_L * dsigma_h/dx)
+
+The minus sign drives hydrogen toward higher hydrostatic tension. For the Lame
+field below sigma_r + sigma_theta is constant through the wall, so sigma_h is
+uniform and the stress term evaluates to zero.
 
 where:
     C_L     = lattice hydrogen concentration [mol/m3]
@@ -117,7 +121,7 @@ def solve_diffusion(
     Solve 1D hydrogen diffusion through pipe wall using explicit finite differences.
 
     Uses forward Euler with stability check (Courant condition).
-    Includes stress-assisted diffusion term (Oriani).
+    Includes the stress-drift term, which is zero for a uniform sigma_h.
 
     Parameters
     ----------
@@ -186,7 +190,7 @@ def solve_diffusion(
         dC_dx = (C[2:] - C[:-2]) / (2.0 * dx)
         stress_term = stress_coeff * (dC_dx * dsigma_dx_in + C[1:-1] * d2sigma_dx2)
 
-        C_new[1:-1] = C[1:-1] + dt * D_L * (d2C_dx2 + stress_term)
+        C_new[1:-1] = C[1:-1] + dt * D_L * (d2C_dx2 - stress_term)
 
         # Enforce BCs
         C_new[0] = C_0

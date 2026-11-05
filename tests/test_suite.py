@@ -1193,6 +1193,39 @@ class TestIntegration:
 
 
 # ============================================================
+# STRESS-DRIFT TERM
+# ============================================================
+class TestStressDrift:
+    def test_lame_hydrostatic_stress_is_uniform(self, cfg):
+        """sigma_r + sigma_theta = 2 p ri^2 / (ro^2 - ri^2) at every radius."""
+        _, s = compute_stress_field(cfg["geom"], 7.0, 50)
+        assert np.ptp(s) < 1e-6 * s[0]
+
+    def test_hydrogen_moves_toward_tension(self, cfg, monkeypatch):
+        """Steady state with a linear sigma_h rising outward, b = V_H g / (R T), b w = 1.
+
+        J = -D C' + D (V_H / RT) C sigma' is constant, so with C(0) = C0 and C(w) = 0:
+        C(x) = C0 (e^(bw) - e^(bx)) / (e^(bw) - 1), and C(w/2) / C0 = 0.6225.
+        The opposite sign would give 0.3775.
+        """
+        import hydrogen_diffusion as hd
+        h2t, w = cfg["h2_transport"], cfg["geom"].wall_thickness_m
+        rise = R_GAS * cfg["ops"].T_K / h2t.V_H_m3mol  # sigma rise across the wall [Pa]
+
+        def linear_field(geom, p_MPa, n):
+            x = np.linspace(0.0, w, n)
+            return x, rise * x / w
+
+        monkeypatch.setattr(hd, "compute_stress_field", linear_field)
+        sim = SimControl(n_wall_nodes=51, dt_diffusion_s=100.0, max_cycles=10,
+                         da_increment_m=1e-5, n_mc_samples=1, mc_seed=1,
+                         n_lhs_samples=1, lhs_seed=1)
+        r = hd.solve_diffusion(cfg["geom"], h2t, cfg["ops"], sim)
+        ratio = r.C_field[-1, 25] / r.C_field[-1, 0]
+        assert abs(ratio - 0.6225) < 0.01
+
+
+# ============================================================
 # T. REGRESSION: LOCKED BASELINES (4 tests)
 # ============================================================
 class TestRegression:
