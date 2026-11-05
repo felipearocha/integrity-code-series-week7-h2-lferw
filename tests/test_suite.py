@@ -1226,6 +1226,40 @@ class TestStressDrift:
 
 
 # ============================================================
+# SEAM FACTOR IN THE SAMPLED INPUTS
+# ============================================================
+class TestSeamFactorIsLive:
+    def test_mc_pit_depth_scales_with_f_seam(self, cfg, monkeypatch):
+        """a = k_pit * f_seam * t^n, so sampled depth must rise with sampled f_seam."""
+        import monte_carlo as mc
+        from scipy.stats import spearmanr
+        cfg["sim"].n_mc_samples = 400
+        monkeypatch.setattr(mc, "solve_diffusion", lambda *a, **k: None)
+        monkeypatch.setattr(mc, "run_life_prediction", lambda *a, **k: LifeStub())
+        r = mc.run_monte_carlo(cfg["geom"], cfg["mat"], cfg["h2_transport"],
+                               cfg["h2_embrittlement"], cfg["pit"], cfg["ops"], cfg["sim"])
+        rho, _ = spearmanr(r.f_seam_values, r.initial_pit_depths_m)
+        assert rho > 0.5
+
+    def test_lhs_has_no_inert_dimension(self, cfg, monkeypatch):
+        """Pit depth is sampled directly, so f_seam has no route into the sweep."""
+        import monte_carlo as mc
+        cfg["sim"].n_lhs_samples = 8
+        monkeypatch.setattr(mc, "solve_diffusion", lambda *a, **k: None)
+        monkeypatch.setattr(mc, "run_life_prediction", lambda *a, **k: LifeStub())
+        r = mc.run_lhs_sweep(cfg["geom"], cfg["mat"], cfg["h2_transport"],
+                             cfg["h2_embrittlement"], cfg["pit"], cfg["ops"], cfg["sim"])
+        assert "f_seam" not in r.param_names
+        assert r.params.shape == (8, 5)
+
+
+class LifeStub:
+    failure_cycle = 1000
+    failure_mode = "fracture"
+    pit_transitioned = True
+
+
+# ============================================================
 # T. REGRESSION: LOCKED BASELINES (4 tests)
 # ============================================================
 class TestRegression:

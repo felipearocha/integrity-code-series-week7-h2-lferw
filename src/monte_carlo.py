@@ -3,7 +3,8 @@ INTEGRITY CODE SERIES -- Week 7
 Monte Carlo Probabilistic Remaining Life and LHS Parametric Sweep
 
 Monte Carlo samples over:
-    1. Initial pit depth (lognormal, from NG service scatter)
+    1. Initial pit depth (lognormal scatter around k_pit * f_seam * t^n_pit,
+       using the f_seam of the sample)
     2. Pit aspect ratio (normal, clipped)
     3. ERW seam toughness K_IC (normal, scatter in bond line quality)
     4. Hydrogen diffusivity D_L (lognormal, microstructure scatter)
@@ -14,8 +15,9 @@ LHS parametric sweep over:
     2. Initial pit depth (0.5 to 3.0 mm)
     3. D_L (5e-11 to 5e-10 m2/s)
     4. K_IC_seam (30 to 90 MPa*sqrt(m))
-    5. f_seam (1.5 to 5.0)
-    6. Aspect ratio (1.0 to 4.0)
+    5. Aspect ratio (1.0 to 4.0)
+
+f_seam acts only through the pit depth, which the sweep samples directly.
 
 Output: CDF of remaining life, sensitivity analysis, risk maps.
 """
@@ -23,7 +25,7 @@ Output: CDF of remaining life, sensitivity analysis, risk maps.
 import numpy as np
 from typing import Dict, List, Tuple
 from dataclasses import dataclass
-import warnings
+from concurrent.futures import ProcessPoolExecutor
 
 from config import (
     PipeGeometry, MaterialProps, HydrogenTransport, HydrogenEmbrittlement,
@@ -50,6 +52,28 @@ class MonteCarloResult:
     percentile_95: float
     fraction_below_10yr: float
     fraction_below_20yr: float
+
+
+def _sample_life(job):
+    """Solve diffusion and life for one sample. Returns (years, mode, transitioned)."""
+    geom, mat, h2t, he, pit, ops, sim, depth, aspect = job
+    diffusion = solve_diffusion(geom, h2t, ops, sim)
+    result = run_life_prediction(
+        geom, mat, h2t, he, pit, ops, sim,
+        pit_depth_override=depth,
+        aspect_ratio_override=aspect,
+        diffusion_result=diffusion,
+    )
+    return (cycles_to_years(result.failure_cycle, ops), result.failure_mode,
+            result.pit_transitioned)
+
+
+def _map_samples(jobs, workers):
+    """Run samples in order, in `workers` processes when more than one."""
+    if workers <= 1:
+        return [_sample_life(j) for j in jobs]
+    with ProcessPoolExecutor(max_workers=workers) as pool:
+        return list(pool.map(_sample_life, jobs, chunksize=20))
 
 
 def latin_hypercube_sample(n_samples: int, n_dims: int, seed: int = 42) -> np.ndarray:
@@ -84,6 +108,7 @@ def run_monte_carlo(
     pit: PitGrowth,
     ops: OperatingConditions,
     sim: SimControl,
+    workers: int = 1,
 ) -> MonteCarloResult:
     """
     Run Monte Carlo simulation for probabilistic remaining life.
@@ -108,7 +133,6 @@ def run_monte_carlo(
         sigma=depth_sigma_log,
         size=n,
     )
-    pit_depths = np.clip(pit_depths, 1.0e-4, 0.8 * geom.wall_thickness_m)
 
     # Aspect ratio: normal
     aspect_ratios = rng.normal(pit.aspect_ratio_mean, pit.aspect_ratio_std, size=n)
@@ -129,8 +153,10 @@ def run_monte_carlo(
         size=n,
     )
 
-    # f_seam: uniform
+    # f_seam: uniform. Pit depth is proportional to it: a = k_pit * f_seam * t^n
     f_seam_values = rng.uniform(1.5, 5.0, size=n)
+    pit_depths = pit_depths * f_seam_values / pit.f_seam
+    pit_depths = np.clip(pit_depths, 1.0e-4, 0.8 * geom.wall_thickness_m)
 
     # Run simulations (with reduced max_cycles for speed)
     sim_fast = SimControl(
@@ -144,10 +170,7 @@ def run_monte_carlo(
         lhs_seed=sim.lhs_seed,
     )
 
-    remaining_lives = np.zeros(n)
-    failure_modes = []
-    transition_flags = np.zeros(n, dtype=bool)
-
+    jobs = []
     for i in range(n):
         # Create modified transport with sampled D_L
         h2t_i = HydrogenTransport(
@@ -158,9 +181,6 @@ def run_monte_carlo(
             E_trap_kJmol=h2t.E_trap_kJmol,
             T_ref_K=h2t.T_ref_K,
         )
-
-        # Solve diffusion with this sample's D_L
-        diff_i = solve_diffusion(geom, h2t_i, ops, sim_fast)
 
         # Create modified material with sampled K_IC
         mat_i = MaterialProps(
@@ -176,17 +196,13 @@ def run_monte_carlo(
             C_paris_air=mat.C_paris_air,
             m_paris_air=mat.m_paris_air,
         )
+        jobs.append((geom, mat_i, h2t_i, he, pit, ops, sim_fast,
+                     pit_depths[i], aspect_ratios[i]))
 
-        result = run_life_prediction(
-            geom, mat_i, h2t_i, he, pit, ops, sim_fast,
-            pit_depth_override=pit_depths[i],
-            aspect_ratio_override=aspect_ratios[i],
-            diffusion_result=diff_i,
-        )
-
-        remaining_lives[i] = cycles_to_years(result.failure_cycle, ops)
-        failure_modes.append(result.failure_mode)
-        transition_flags[i] = result.pit_transitioned
+    results = _map_samples(jobs, workers)
+    remaining_lives = np.array([r[0] for r in results])
+    failure_modes = [r[1] for r in results]
+    transition_flags = np.array([r[2] for r in results], dtype=bool)
 
     # Clip at max simulation time
     max_years = cycles_to_years(sim_fast.max_cycles, ops)
@@ -229,22 +245,22 @@ def run_lhs_sweep(
     pit: PitGrowth,
     ops: OperatingConditions,
     sim: SimControl,
+    workers: int = 1,
 ) -> LHSResult:
     """
     Latin Hypercube parametric sweep for sensitivity analysis.
 
-    6 dimensions:
+    5 dimensions:
         0: p_H2 [3, 10] MPa
         1: pit_depth [0.5e-3, 3.0e-3] m
         2: D_L [5e-11, 5e-10] m2/s
         3: K_IC_seam [30, 90] MPa*sqrt(m)
-        4: f_seam [1.5, 5.0]
-        5: aspect_ratio [1.0, 4.0]
+        4: aspect_ratio [1.0, 4.0]
     """
     n = sim.n_lhs_samples
-    n_dims = 6
+    n_dims = 5
     param_names = ["p_H2_MPa", "pit_depth_m", "D_L_m2s",
-                   "K_IC_seam", "f_seam", "aspect_ratio"]
+                   "K_IC_seam", "aspect_ratio"]
 
     # LHS in [0,1]
     lhs_raw = latin_hypercube_sample(n, n_dims, seed=sim.lhs_seed)
@@ -255,8 +271,7 @@ def run_lhs_sweep(
     params[:, 1] = 0.5e-3 + lhs_raw[:, 1] * 2.5e-3    # pit: [0.5, 3.0] mm
     params[:, 2] = 5e-11 * (10.0 ** (lhs_raw[:, 2] * 1.0))  # D_L: log-uniform
     params[:, 3] = 30.0 + lhs_raw[:, 3] * 60.0         # K_IC: [30, 90]
-    params[:, 4] = 1.5 + lhs_raw[:, 4] * 3.5           # f_seam: [1.5, 5.0]
-    params[:, 5] = 1.0 + lhs_raw[:, 5] * 3.0           # AR: [1.0, 4.0]
+    params[:, 4] = 1.0 + lhs_raw[:, 4] * 3.0           # AR: [1.0, 4.0]
 
     # Reduced simulation for sweep
     sim_fast = SimControl(
@@ -270,9 +285,7 @@ def run_lhs_sweep(
         lhs_seed=sim.lhs_seed,
     )
 
-    remaining_lives = np.zeros(n)
-    failure_modes = []
-
+    jobs = []
     for i in range(n):
         ops_i = OperatingConditions(
             p_H2_MPa=params[i, 0],
@@ -306,20 +319,12 @@ def run_lhs_sweep(
             C_paris_air=mat.C_paris_air,
             m_paris_air=mat.m_paris_air,
         )
+        jobs.append((geom, mat_i, h2t_i, he, pit, ops_i, sim_fast,
+                     params[i, 1], params[i, 4]))
 
-        try:
-            diff_result = solve_diffusion(geom, h2t_i, ops_i, sim_fast)
-            result = run_life_prediction(
-                geom, mat_i, h2t_i, he, pit, ops_i, sim_fast,
-                pit_depth_override=params[i, 1],
-                aspect_ratio_override=params[i, 5],
-                diffusion_result=diff_result,
-            )
-            remaining_lives[i] = cycles_to_years(result.failure_cycle, ops_i)
-            failure_modes.append(result.failure_mode)
-        except Exception:
-            remaining_lives[i] = 0.0
-            failure_modes.append("error")
+    results = _map_samples(jobs, workers)
+    remaining_lives = np.array([r[0] for r in results])
+    failure_modes = [r[1] for r in results]
 
     # Spearman rank correlation for sensitivity
     from scipy.stats import spearmanr
