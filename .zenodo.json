@@ -18,7 +18,6 @@
     "pipeline conversion",
     "ASME B31.12",
     "ASME B31.8",
-    "NACE TM0316",
     "Oriani diffusion",
     "Murakami SIF",
     "El Haddad",
@@ -41,7 +40,6 @@
     "Murakami Y. (2002). Metal Fatigue: Effects of Small Defects and Nonmetallic Inclusions, Elsevier.",
     "El Haddad M.H., Topper T.H., Smith K.N. (1979). Prediction of non-propagating cracks. Engineering Fracture Mechanics 11(3): 573-584.",
     "ASME (2019). ASME B31.12 Hydrogen Piping and Pipelines.",
-    "NACE TM0316 (2016). Four-Point Bend Testing of Materials for Oil and Gas Applications.",
     "PHMSA (2026). Corrective Action Order: Willow River, Minnesota LF-ERW rupture."
   ],
   "language": "eng",
