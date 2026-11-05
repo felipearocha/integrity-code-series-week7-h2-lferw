@@ -5,7 +5,6 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![Tests: 182 passing](https://img.shields.io/badge/tests-182%20passing-brightgreen.svg)](tests)
-[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20172481.svg)](https://doi.org/10.5281/zenodo.20172481)
 
 ---
@@ -82,7 +81,8 @@ integrity-code-series-week7-h2-lferw/
         test_suite.py                # 182 tests
     docs/
         equations.html               # Rendered (MathJax) governing equations
-    assets/                          # Generated visuals + surrogate model
+    assets/                          # Generated visuals
+    run_all.py                       # Full chain + all figures
     README.md
     requirements.txt
 ```
@@ -93,66 +93,14 @@ integrity-code-series-week7-h2-lferw/
 # 1. Install dependencies
 pip install -r requirements.txt
 
-# 2. Run test suite
-cd tests
-python -m pytest test_suite.py -v
+# 2. Run test suite (about 3 minutes)
+python -m pytest tests/ -v
 
-# 3. Run full simulation (from src/)
-cd ../src
-python -c "
-from config import default_config
-from hydrogen_diffusion import solve_diffusion
-from ha_fcg import run_life_prediction, cycles_to_years
-from monte_carlo import run_monte_carlo, run_lhs_sweep
-from ml_surrogate import train_surrogate, validate_feature_ranking
-from visualization import *
+# 3. Smoke-run the whole chain: 20 MC + 60 LHS samples, figures to a temp folder (about 2 minutes)
+python run_all.py --quick
 
-cfg = default_config()
-print('Running hydrogen diffusion...')
-diff = solve_diffusion(cfg['geom'], cfg['h2_transport'], cfg['ops'], cfg['sim'])
-print(f'Diffusion solved: {len(diff.t_grid)} snapshots')
-
-print('Running life prediction...')
-life = run_life_prediction(
-    cfg['geom'], cfg['mat'], cfg['h2_transport'],
-    cfg['h2_embrittlement'], cfg['pit'], cfg['ops'], cfg['sim'],
-    diffusion_result=diff
-)
-print(f'Failure at cycle {life.failure_cycle} ({cycles_to_years(life.failure_cycle, cfg[\"ops\"]):.1f} years)')
-print(f'Failure mode: {life.failure_mode}')
-
-print('Running Monte Carlo (10,000 samples)...')
-mc = run_monte_carlo(
-    cfg['geom'], cfg['mat'], cfg['h2_transport'],
-    cfg['h2_embrittlement'], cfg['pit'], cfg['ops'], cfg['sim']
-)
-print(f'P5={mc.percentile_5:.1f} yr, P50={mc.percentile_50:.1f} yr, P95={mc.percentile_95:.1f} yr')
-print(f'Fraction below 10yr: {mc.fraction_below_10yr:.1%}')
-
-print('Running LHS sweep (2,000 samples)...')
-lhs = run_lhs_sweep(
-    cfg['geom'], cfg['mat'], cfg['h2_transport'],
-    cfg['h2_embrittlement'], cfg['pit'], cfg['ops'], cfg['sim']
-)
-print('Spearman correlations:')
-for k, v in sorted(lhs.spearman_correlations.items(), key=lambda x: -abs(x[1])):
-    print(f'  {k}: {v:.3f}')
-
-print('Training GBR surrogate...')
-surr = train_surrogate(lhs.params, lhs.remaining_life_years, lhs.param_names)
-print(f'R2 test: {surr.r2_test:.3f}')
-ranking = validate_feature_ranking(surr.feature_importances)
-for k, v in ranking.items():
-    print(f'  {k}: {v}')
-
-print('Generating visuals...')
-plot_hero_diffusion_crack(diff, life, cfg['geom'])
-plot_monte_carlo_cdf(mc)
-plot_sensitivity_tornado(lhs.spearman_correlations)
-plot_surrogate_parity(surr)
-generate_gif(diff, life, cfg['geom'])
-print('All outputs generated in assets/')
-"
+# 4. Full run: 10,000 MC + 2,000 LHS samples, regenerates assets/ (several hours, single process)
+python run_all.py
 ```
 
 ## Key Assumptions Requiring Experimental Calibration
@@ -253,7 +201,7 @@ Part of an ongoing series of physics-first integrity simulators by Felipe Rocha:
 |---|---|---|
 | Week 3 | [integrity-code-series-week3-f1-lap-simulation](https://github.com/felipearocha/integrity-code-series-week3-f1-lap-simulation) | F1 lap simulation (six coupled ODEs) |
 | Week 6 | [integrity-code-series-week6-smartphone-galvanic](https://github.com/felipearocha/integrity-code-series-week6-smartphone-galvanic) | Smartphone galvanic corrosion (Laplace + Butler-Volmer) |
-| **Week 7** | **[integrity-code-series-week7-h2-lferw](https://github.com/felipearocha/integrity-code-series-week7-h2-lferw)** | **LF-ERW H2 conversion (B31.12 + NACE TM0316) — this repo** |
+| **Week 7** | **[integrity-code-series-week7-h2-lferw](https://github.com/felipearocha/integrity-code-series-week7-h2-lferw)** | **LF-ERW H2 conversion (Oriani diffusion + HA-FCG + B31.12 MAOP) — this repo** |
 | Week 8 | [integrity-code-series-week8-creep-fatigue-heater](https://github.com/felipearocha/integrity-code-series-week8-creep-fatigue-heater) | Creep-fatigue 9Cr-1Mo (Norton/Omega + Coffin-Manson) |
 | Week 9 | [integrity-code-series-week9-cui](https://github.com/felipearocha/integrity-code-series-week9-cui) | CUI thermohygro-electrochemical (3 PDEs, Strang) |
 | Week 10 | [integrity-code-series-week10-nnph-scc](https://github.com/felipearocha/integrity-code-series-week10-nnph-scc) | NNpHSCC full-physics (Chen-Sutherby-Xing + BS 7910) |
