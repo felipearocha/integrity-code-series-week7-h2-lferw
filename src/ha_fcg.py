@@ -343,17 +343,17 @@ def cycles_to_years(cycles: int, ops: OperatingConditions) -> float:
 
 def maop_under_b3112(geom: PipeGeometry, mat: MaterialProps, ops: OperatingConditions) -> float:
     """
-    MAOP under ASME B31.12 for LF-ERW pipe.
+    MAOP in the form of the ASME B31.12 design equation for steel pipelines.
 
     P = 2 * SMYS * t * F * H_f / D
 
-    where F = design factor (0.50 for LF-ERW in Class 1)
-    and H_f = material performance factor from B31.12 Table PL-3.7.1
+    where F = design factor and H_f = material performance factor.
 
-    [ASSUMED] H_f = 0.54 for X52 at 7 MPa H2 (from B31.12 Option A)
-    This is a significant de-rating from NG service.
+    [ASSUMED] F = 0.50 and H_f = 0.54 are placeholders chosen to show a
+    hydrogen de-rating. Neither is read from the code book: take both from
+    the governing B31.12 edition before any use.
     """
-    H_f = 0.54  # [ASSUMED] material performance factor for X52 in H2
+    H_f = 0.54  # [ASSUMED] placeholder material performance factor
     F = ops.design_factor_b3112
     P = 2.0 * mat.SMYS_MPa * geom.wall_thickness_m * F * H_f / geom.outer_diameter_m
     return P

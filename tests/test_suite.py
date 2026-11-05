@@ -1284,6 +1284,20 @@ class TestTransitionUsesRange:
 
 
 # ============================================================
+# ONE MAOP
+# ============================================================
+class TestSingleMAOP:
+    def test_no_second_maop_without_hf(self, cfg):
+        """config.maop_h2 returned 4.475 MPa beside the 2.417 MPa of maop_under_b3112."""
+        assert not hasattr(cfg["ops"], "maop_h2")
+
+    def test_maop_hand_calculation(self, cfg):
+        """2 * 358 * 0.00635 * 0.50 * 0.54 / 0.508 = 2.4165 MPa."""
+        m = maop_under_b3112(cfg["geom"], cfg["mat"], cfg["ops"])
+        assert abs(m - 2.4165) < 1e-3
+
+
+# ============================================================
 # T. REGRESSION: LOCKED BASELINES (4 tests)
 # ============================================================
 class TestRegression:
