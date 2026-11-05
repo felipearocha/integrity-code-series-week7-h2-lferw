@@ -129,10 +129,10 @@ All parameters flagged [ASSUMED] in config.py. Critical ones:
 Sensor spoofing detection for ILI data. Physics monotonicity check for training data
 integrity. See `src/cybersecurity.py`.
 
-## Anti-Hallucination Note
+## Source Traceability
 
 Every parameter in `config.py` is either a published standard / physical-constant value
-or explicitly flagged `[ASSUMED]`. The tags are applied honestly across three tiers:
+or explicitly flagged `[ASSUMED]`. The tags follow three tiers:
 
 - **T1 — standard / handbook / measured:** physical constants (Faraday, gas constant),
   API 5L X52 specification values (SMYS 358 MPa, SMTS 455 MPa), the ASME B31.12 design
@@ -147,8 +147,7 @@ or explicitly flagged `[ASSUMED]`. The tags are applied honestly across three ti
   toughness/threshold values, the pit-growth constants (k_pit, n_pit, f_seam), and the
   B31.12 material performance factor H_f.
 
-No equation, constant, or citation in this repository is invented: T3 values are marked
-`[ASSUMED]` at the point of use and must be measured in pressurized hydrogen before any
+T3 values are marked `[ASSUMED]` at the point of use and must be measured in pressurized hydrogen before any
 engineering application.
 
 ## Disclaimer
