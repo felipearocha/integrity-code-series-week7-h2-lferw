@@ -1,6 +1,6 @@
 """
 INTEGRITY CODE SERIES -- Week 7
-Comprehensive Test Suite: 150+ tests
+Comprehensive Test Suite: 191 tests
 
 Categories:
     A. Configuration and parameter validation (18)
@@ -1295,6 +1295,16 @@ class TestSingleMAOP:
         """2 * 358 * 0.00635 * 0.50 * 0.54 / 0.508 = 2.4165 MPa."""
         m = maop_under_b3112(cfg["geom"], cfg["mat"], cfg["ops"])
         assert abs(m - 2.4165) < 1e-3
+
+
+# ============================================================
+# FAD CURVE
+# ============================================================
+class TestFADCurve:
+    def test_level_2_curve_at_lr_1(self):
+        """(1 - 0.14) * (0.3 + 0.7 * exp(-0.65)) = 0.86 * 0.66543 = 0.5723."""
+        from visualization import fad_curve
+        assert abs(fad_curve(1.0) - 0.5723) < 1e-3
 
 
 # ============================================================
