@@ -10,7 +10,7 @@ authors:
 repository-code: "https://github.com/felipearocha/integrity-code-series-week7-h2-lferw"
 url: "https://github.com/felipearocha/integrity-code-series-week7-h2-lferw"
 abstract: >
-  Coupled diffusion-fracture life prediction for converting a 1959-vintage 20-inch API 5L X52 low-frequency electric-resistance-welded (LF-ERW) pipeline with pre-existing selective seam corrosion pits from natural-gas to hydrogen service. The package implements a five-mechanism sequential chain: Oriani stress-assisted Fick hydrogen diffusion PDE; power-law pit growth at the ERW seam from prior NG service; Murakami plus El-Haddad pit-to-crack transition; hydrogen-assisted fatigue crack growth (modified Paris); failure criterion against hydrogen-degraded K_IC. Anchored to the 2026 PHMSA Corrective Action Order at Willow River, Minnesota and ASME B31.8/B31.12 (2026 edition) hydrogen blending requirements. 182 unit and integration tests.
+  Coupled diffusion-fracture life prediction for converting a 1959-vintage 20-inch API 5L X52 low-frequency electric-resistance-welded (LF-ERW) pipeline with pre-existing selective seam corrosion pits from natural-gas to hydrogen service. The package implements a five-mechanism sequential chain: Fick hydrogen diffusion PDE with Sievert's-law uptake; power-law pit growth at the ERW seam from prior NG service; Murakami plus El-Haddad pit-to-crack transition; hydrogen-assisted fatigue crack growth (modified Paris); failure criterion against hydrogen-degraded K_IC. Anchored to the 2026 PHMSA Corrective Action Order at Willow River, Minnesota. Includes an MAOP in the ASME B31.12 form with assumed factors. 191 unit and integration tests.
 keywords:
   - hydrogen embrittlement
   - LF-ERW
@@ -19,7 +19,7 @@ keywords:
   - pipeline conversion
   - ASME B31.12
   - ASME B31.8
-  - Oriani diffusion
+  - hydrogen diffusion
   - Murakami SIF
   - El Haddad
   - hydrogen-assisted fatigue
