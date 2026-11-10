@@ -1,6 +1,6 @@
 {
   "title": "Integrity Code Series - Week 7 - Hydrogen Conversion of Aging LF-ERW Pipeline: Coupled Diffusion-Fracture Life Prediction",
-  "description": "<p>Coupled diffusion-fracture life prediction for converting a 1959-vintage 20-inch API 5L X52 low-frequency electric-resistance-welded (LF-ERW) pipeline with pre-existing selective seam corrosion pits from natural-gas to hydrogen service. The package implements a five-mechanism sequential chain:</p><ol><li>Oriani stress-assisted Fick hydrogen diffusion PDE</li><li>Power-law pit growth at the ERW seam from prior NG service</li><li>Murakami plus El-Haddad pit-to-crack transition</li><li>Hydrogen-assisted fatigue crack growth (modified Paris)</li><li>Failure criterion against hydrogen-degraded K_IC</li></ol><p>Anchored to the 2026 PHMSA Corrective Action Order at Willow River, Minnesota and ASME B31.8/B31.12 (2026 edition) hydrogen blending requirements. 182 unit and integration tests.</p>",
+  "description": "<p>Coupled diffusion-fracture life prediction for converting a 1959-vintage 20-inch API 5L X52 low-frequency electric-resistance-welded (LF-ERW) pipeline with pre-existing selective seam corrosion pits from natural-gas to hydrogen service. The package implements a five-mechanism sequential chain:</p><ol><li>Fick hydrogen diffusion PDE with Sievert's-law uptake</li><li>Power-law pit growth at the ERW seam from prior NG service</li><li>Murakami plus El-Haddad pit-to-crack transition</li><li>Hydrogen-assisted fatigue crack growth (modified Paris)</li><li>Failure criterion against hydrogen-degraded K_IC</li></ol><p>Anchored to the 2026 PHMSA Corrective Action Order at Willow River, Minnesota. Includes an MAOP in the ASME B31.12 form with assumed factors. 191 unit and integration tests.</p>",
   "upload_type": "software",
   "access_right": "open",
   "license": "MIT",
@@ -18,8 +18,7 @@
     "pipeline conversion",
     "ASME B31.12",
     "ASME B31.8",
-    "NACE TM0316",
-    "Oriani diffusion",
+    "hydrogen diffusion",
     "Murakami SIF",
     "El Haddad",
     "hydrogen-assisted fatigue",
@@ -37,11 +36,10 @@
     }
   ],
   "references": [
-    "Oriani R.A. (1970). The diffusion and trapping of hydrogen in steel. Acta Metallurgica 18: 147-157.",
     "Murakami Y. (2002). Metal Fatigue: Effects of Small Defects and Nonmetallic Inclusions, Elsevier.",
     "El Haddad M.H., Topper T.H., Smith K.N. (1979). Prediction of non-propagating cracks. Engineering Fracture Mechanics 11(3): 573-584.",
     "ASME (2019). ASME B31.12 Hydrogen Piping and Pipelines.",
-    "NACE TM0316 (2016). Four-Point Bend Testing of Materials for Oil and Gas Applications.",
+    "Bourga R., Wang B., Moore P., Janin Y. (2016). Comparison of BS 7910 and API 579-1/ASME FFS-1 solutions with regards to leak-before-break. ASME PVP2016-63876. https://doi.org/10.1115/PVP2016-63876",
     "PHMSA (2026). Corrective Action Order: Willow River, Minnesota LF-ERW rupture."
   ],
   "language": "eng",

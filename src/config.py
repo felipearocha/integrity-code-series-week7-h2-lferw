@@ -167,15 +167,8 @@ class OperatingConditions:
     # Temperature
     T_K: float = 298.15              # ambient, 25 degC
 
-    # ASME B31.12 design factor for LF-ERW pipe
-    # Class 1 location, LF-ERW: design factor = 0.50 (more conservative than NG service)
-    design_factor_b3112: float = 0.50  # ASME B31.12, Table PL-3.7.1
-
-    # MAOP under hydrogen (computed)
-    def maop_h2(self, geom: PipeGeometry, mat: MaterialProps) -> float:
-        """Maximum allowable operating pressure under B31.12."""
-        return (2.0 * mat.SMYS_MPa * geom.wall_thickness_m
-                * self.design_factor_b3112 / geom.outer_diameter_m)
+    # Design factor used in the B31.12-style MAOP in ha_fcg.maop_under_b3112
+    design_factor_b3112: float = 0.50  # [ASSUMED] placeholder, not read from the code book
 
 
 # ============================================================

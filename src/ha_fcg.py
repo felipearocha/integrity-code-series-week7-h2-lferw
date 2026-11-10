@@ -13,11 +13,11 @@ where the hydrogen enhancement function is:
 Stress intensity factor for semi-elliptical surface crack in cylinder:
     K = F * sigma * sqrt(pi * a)
 
-    where F is the Newman-Raju geometry factor (simplified as F=1.12 for
-    surface crack with a/t < 0.5 and a/c < 1.0).
+    where F is a simplified Newman-Raju geometry factor:
+    F = 1.12 * sqrt(sec(pi*a / (2*t))).
 
     Note: Full Newman-Raju solution depends on a/t, a/c, and angular position.
-    [ASSUMED] simplified constant F=1.12 is used here. For production use,
+    [ASSUMED] this simplified F is used here. For production use,
     implement the full parametric Newman-Raju solution.
 
 Failure criterion:
@@ -61,12 +61,9 @@ def newman_raju_simplified(sigma_MPa: float, a_m: float, t_m: float) -> float:
 
     K = F * sigma * sqrt(pi * a)
 
-    F = 1.12 for a/t < 0.5 (shallow crack).
-    For deeper cracks, apply Folias-type correction:
-        F = 1.12 * (1 + 0.12 * (1 - a/(2*c))^2) * f_w(a/t)
-    where f_w = [sec(pi*a / (2*t))]^0.5 (finite width correction)
-
-    [ASSUMED] aspect ratio a/c = 0.5 (equivalent to c/a = 2.0 from PitGrowth default)
+    F = 1.12 * f_w(a/t)
+    where f_w = [sec(pi*a / (2*t))]^0.5 (finite width correction),
+    with a/t capped at 0.95. Aspect ratio a/c does not enter this form.
 
     Parameters
     ----------
@@ -346,17 +343,17 @@ def cycles_to_years(cycles: int, ops: OperatingConditions) -> float:
 
 def maop_under_b3112(geom: PipeGeometry, mat: MaterialProps, ops: OperatingConditions) -> float:
     """
-    MAOP under ASME B31.12 for LF-ERW pipe.
+    MAOP in the form of the ASME B31.12 design equation for steel pipelines.
 
     P = 2 * SMYS * t * F * H_f / D
 
-    where F = design factor (0.50 for LF-ERW in Class 1)
-    and H_f = material performance factor from B31.12 Table PL-3.7.1
+    where F = design factor and H_f = material performance factor.
 
-    [ASSUMED] H_f = 0.54 for X52 at 7 MPa H2 (from B31.12 Option A)
-    This is a significant de-rating from NG service.
+    [ASSUMED] F = 0.50 and H_f = 0.54 are placeholders chosen to show a
+    hydrogen de-rating. Neither is read from the code book: take both from
+    the governing B31.12 edition before any use.
     """
-    H_f = 0.54  # [ASSUMED] material performance factor for X52 in H2
+    H_f = 0.54  # [ASSUMED] placeholder material performance factor
     F = ops.design_factor_b3112
     P = 2.0 * mat.SMYS_MPa * geom.wall_thickness_m * F * H_f / geom.outer_diameter_m
     return P

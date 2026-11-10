@@ -18,7 +18,6 @@ Expected physical ranking (prior expectation):
     3. p_H2 (hydrogen concentration driver)
     4. D_L (transport kinetics)
     5. aspect_ratio (geometry modifier)
-    6. f_seam (pit growth history)
 
 If the surrogate disagrees significantly, investigate.
 """

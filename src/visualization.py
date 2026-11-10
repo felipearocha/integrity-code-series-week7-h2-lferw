@@ -8,7 +8,7 @@ Outputs:
     3. Sensitivity tornado (Spearman)
     4. Surrogate parity + feature importance
     5. Iso-risk contour: remaining life vs (p_H2, pit_depth) with 10yr boundary
-    6. Failure Assessment Diagram (FAD) per API 579-1 / BS 7910
+    6. Failure Assessment Diagram (FAD), API 579-1 Level 2 curve
     7. Animated GIF with color-mapped wall concentration
 """
 
@@ -386,9 +386,14 @@ def plot_iso_risk_contour(lhs_params, lhs_lives, param_names,
 
 
 # ============================================================
-# 6. FAILURE ASSESSMENT DIAGRAM (FAD) per API 579-1 / BS 7910
+# 6. FAILURE ASSESSMENT DIAGRAM (FAD), API 579-1 Level 2 curve
 # ============================================================
-def plot_fad(life_result, geom, mat, he,
+def fad_curve(Lr):
+    """API 579-1/ASME FFS-1 Level 2 FAD, as quoted in Bourga et al. 2016, PVP2016-63876."""
+    return (1.0 - 0.14 * Lr**2) * (0.3 + 0.7 * np.exp(-0.65 * Lr**6))
+
+
+def plot_fad(life_result, geom, mat, he, p_max_MPa,
              save_path="assets/fad.png"):
     """
     Failure Assessment Diagram.
@@ -397,7 +402,7 @@ def plot_fad(life_result, geom, mat, he,
         K_r = K_applied / K_IC(C_H)    (fracture axis)
         L_r = sigma_ref / sigma_yield   (collapse axis)
 
-    FAD envelope (Option 1, BS 7910 Level 2A):
+    FAD envelope (API 579-1 Level 2, see fad_curve):
         K_r = f(L_r) = (1 - 0.14 * L_r^2) * [0.3 + 0.7 * exp(-0.65 * L_r^6)]
         valid for 0 <= L_r <= L_r_max where L_r_max = (SMYS + SMTS) / (2 * SMYS)
 
@@ -409,17 +414,17 @@ def plot_fad(life_result, geom, mat, he,
 
     fig, ax = plt.subplots(figsize=(7, 6.5))
 
-    # FAD envelope (Option 1)
+    # FAD envelope (API 579-1 Level 2)
     L_r_max = (mat.SMYS_MPa + mat.SMTS_MPa) / (2.0 * mat.SMYS_MPa)
     L_r_cut = min(L_r_max, 1.6)
 
     Lr_env = np.linspace(0, L_r_cut, 200)
-    Kr_env = (1.0 - 0.14 * Lr_env**2) * (0.3 + 0.7 * np.exp(-0.65 * Lr_env**6))
+    Kr_env = fad_curve(Lr_env)
 
     # Fill unsafe region
     ax.fill_between(Lr_env, Kr_env, 1.5, color="#f5e6e6", alpha=0.5, zorder=1)
     ax.fill_betweenx([0, 1.5], L_r_cut, 1.8, color="#f5e6e6", alpha=0.5, zorder=1)
-    ax.plot(Lr_env, Kr_env, color=_DRED, lw=1.6, zorder=4, label="FAD envelope (Option 1)")
+    ax.plot(Lr_env, Kr_env, color=_DRED, lw=1.6, zorder=4, label="FAD envelope (API 579-1 Level 2)")
     ax.axvline(L_r_cut, color=_DRED, lw=1.0, ls="--", zorder=4)
 
     # Assessment trajectory from crack history
@@ -431,7 +436,7 @@ def plot_fad(life_result, geom, mat, he,
         for i in range(n_pts):
             a_i = life_result.crack_history_a[i]
             C_H_i = life_result.crack_history_C_H[i]
-            sigma_max = hoop_stress(geom, 7.0)  # operating pressure
+            sigma_max = hoop_stress(geom, p_max_MPa)
 
             K_app = newman_raju_simplified(sigma_max, a_i, geom.wall_thickness_m)
             K_IC_H = degraded_toughness(mat.K_IC_air_seam_MPa_sqrtm, C_H_i, he)
@@ -486,7 +491,7 @@ def plot_fad(life_result, geom, mat, he,
 
     ax.set_xlabel(r"$L_r = \sigma_{\mathrm{ref}} \,/\, \sigma_{\mathrm{y}}$")
     ax.set_ylabel(r"$K_r = K_{\mathrm{app}} \,/\, K_{\mathrm{IC}}(C_{\mathrm{H}})$")
-    ax.set_title("Failure Assessment Diagram (BS 7910 Option 1)", loc="left")
+    ax.set_title("Failure Assessment Diagram (API 579-1 Level 2)", loc="left")
     ax.legend(fontsize=8, loc="upper left")
     ax.set_xlim(0, x_max); ax.set_ylim(0, y_max)
     ax.minorticks_on()

@@ -1,6 +1,6 @@
 """
 INTEGRITY CODE SERIES -- Week 7
-Comprehensive Test Suite: 150+ tests
+Comprehensive Test Suite: 191 tests
 
 Categories:
     A. Configuration and parameter validation (18)
@@ -1190,6 +1190,121 @@ class TestIntegration:
         """B31.12 MAOP should be below default operating pressure (known de-rating)."""
         maop = maop_under_b3112(cfg["geom"], cfg["mat"], cfg["ops"])
         assert maop < cfg["ops"].p_max_MPa
+
+
+# ============================================================
+# STRESS-DRIFT TERM
+# ============================================================
+class TestStressDrift:
+    def test_lame_hydrostatic_stress_is_uniform(self, cfg):
+        """sigma_r + sigma_theta = 2 p ri^2 / (ro^2 - ri^2) at every radius."""
+        _, s = compute_stress_field(cfg["geom"], 7.0, 50)
+        assert np.ptp(s) < 1e-6 * s[0]
+
+    def test_hydrogen_moves_toward_tension(self, cfg, monkeypatch):
+        """Steady state with a linear sigma_h rising outward, b = V_H g / (R T), b w = 1.
+
+        J = -D C' + D (V_H / RT) C sigma' is constant, so with C(0) = C0 and C(w) = 0:
+        C(x) = C0 (e^(bw) - e^(bx)) / (e^(bw) - 1), and C(w/2) / C0 = 0.6225.
+        The opposite sign would give 0.3775.
+        """
+        import hydrogen_diffusion as hd
+        h2t, w = cfg["h2_transport"], cfg["geom"].wall_thickness_m
+        rise = R_GAS * cfg["ops"].T_K / h2t.V_H_m3mol  # sigma rise across the wall [Pa]
+
+        def linear_field(geom, p_MPa, n):
+            x = np.linspace(0.0, w, n)
+            return x, rise * x / w
+
+        monkeypatch.setattr(hd, "compute_stress_field", linear_field)
+        sim = SimControl(n_wall_nodes=51, dt_diffusion_s=100.0, max_cycles=10,
+                         da_increment_m=1e-5, n_mc_samples=1, mc_seed=1,
+                         n_lhs_samples=1, lhs_seed=1)
+        r = hd.solve_diffusion(cfg["geom"], h2t, cfg["ops"], sim)
+        ratio = r.C_field[-1, 25] / r.C_field[-1, 0]
+        assert abs(ratio - 0.6225) < 0.01
+
+
+# ============================================================
+# SEAM FACTOR IN THE SAMPLED INPUTS
+# ============================================================
+class TestSeamFactorIsLive:
+    def test_mc_pit_depth_scales_with_f_seam(self, cfg, monkeypatch):
+        """a = k_pit * f_seam * t^n, so sampled depth must rise with sampled f_seam."""
+        import monte_carlo as mc
+        from scipy.stats import spearmanr
+        cfg["sim"].n_mc_samples = 400
+        monkeypatch.setattr(mc, "solve_diffusion", lambda *a, **k: None)
+        monkeypatch.setattr(mc, "run_life_prediction", lambda *a, **k: LifeStub())
+        r = mc.run_monte_carlo(cfg["geom"], cfg["mat"], cfg["h2_transport"],
+                               cfg["h2_embrittlement"], cfg["pit"], cfg["ops"], cfg["sim"])
+        rho, _ = spearmanr(r.f_seam_values, r.initial_pit_depths_m)
+        assert rho > 0.5
+
+    def test_lhs_has_no_inert_dimension(self, cfg, monkeypatch):
+        """Pit depth is sampled directly, so f_seam has no route into the sweep."""
+        import monte_carlo as mc
+        cfg["sim"].n_lhs_samples = 8
+        monkeypatch.setattr(mc, "solve_diffusion", lambda *a, **k: None)
+        monkeypatch.setattr(mc, "run_life_prediction", lambda *a, **k: LifeStub())
+        r = mc.run_lhs_sweep(cfg["geom"], cfg["mat"], cfg["h2_transport"],
+                             cfg["h2_embrittlement"], cfg["pit"], cfg["ops"], cfg["sim"])
+        assert "f_seam" not in r.param_names
+        assert r.params.shape == (8, 5)
+
+
+class LifeStub:
+    failure_cycle = 1000
+    failure_mode = "fracture"
+    pit_transitioned = True
+
+
+# ============================================================
+# PIT-TO-CRACK TRANSITION USES THE STRESS RANGE
+# ============================================================
+class TestTransitionUsesRange:
+    def test_shallow_pit_stays_a_pit(self, cfg):
+        """a = 0.15 mm, c/a = 2, area = pi a^2. sigma_max = 280, dsigma = 140 MPa.
+
+        K at sigma_max = 5.25 exceeds K_th = 3.5, but dK = 2.63 does not.
+        El Haddad a_th = (3.5 / (1.12 * 140))^2 / pi = 0.159 mm > a.
+        """
+        s = evaluate_pit_state(cfg["geom"], cfg["mat"], cfg["pit"], cfg["ops"],
+                               cfg["h2_embrittlement"], C_H_at_pit=0.0,
+                               pit_depth_m=0.15e-3, aspect_ratio=2.0)
+        assert abs(s.K_pit_MPa_sqrtm - 2.63) < 0.02
+        assert not s.is_crack
+
+    def test_deeper_pit_transitions(self, cfg):
+        """a = 0.5 mm: dK = 4.8 > K_th = 3.5."""
+        s = evaluate_pit_state(cfg["geom"], cfg["mat"], cfg["pit"], cfg["ops"],
+                               cfg["h2_embrittlement"], C_H_at_pit=0.0,
+                               pit_depth_m=0.5e-3, aspect_ratio=2.0)
+        assert s.is_crack
+
+
+# ============================================================
+# ONE MAOP
+# ============================================================
+class TestSingleMAOP:
+    def test_no_second_maop_without_hf(self, cfg):
+        """config.maop_h2 returned 4.475 MPa beside the 2.417 MPa of maop_under_b3112."""
+        assert not hasattr(cfg["ops"], "maop_h2")
+
+    def test_maop_hand_calculation(self, cfg):
+        """2 * 358 * 0.00635 * 0.50 * 0.54 / 0.508 = 2.4165 MPa."""
+        m = maop_under_b3112(cfg["geom"], cfg["mat"], cfg["ops"])
+        assert abs(m - 2.4165) < 1e-3
+
+
+# ============================================================
+# FAD CURVE
+# ============================================================
+class TestFADCurve:
+    def test_level_2_curve_at_lr_1(self):
+        """(1 - 0.14) * (0.3 + 0.7 * exp(-0.65)) = 0.86 * 0.66543 = 0.5723."""
+        from visualization import fad_curve
+        assert abs(fad_curve(1.0) - 0.5723) < 1e-3
 
 
 # ============================================================

@@ -1,10 +1,14 @@
 """
 INTEGRITY CODE SERIES -- Week 7
-Hydrogen Diffusion Through Pipe Wall: Stress-Assisted Fick's Law (Oriani)
+Hydrogen Diffusion Through Pipe Wall: Fick's Law With a Stress-Drift Term
 
 Governing PDE (1D through-wall, thin-wall approximation):
 
-    dC_L/dt = D_L * d2C_L/dx2 + D_L * (V_H / RT) * d/dx(C_L * dsigma_h/dx)
+    dC_L/dt = D_L * d2C_L/dx2 - D_L * (V_H / RT) * d/dx(C_L * dsigma_h/dx)
+
+The minus sign drives hydrogen toward higher hydrostatic tension. For the Lame
+field below sigma_r + sigma_theta is constant through the wall, so sigma_h is
+uniform and the stress term evaluates to zero.
 
 where:
     C_L     = lattice hydrogen concentration [mol/m3]
@@ -27,7 +31,7 @@ Stress field (elastic, Lame solution for thick cylinder under internal pressure)
     sigma_z        = p*ri^2/(ro^2-ri^2)  [closed-end condition]
     sigma_h        = (sigma_r + sigma_theta + sigma_z) / 3
 
-Discretization: Method of Lines with central differences in space, RK45 in time.
+Discretization: central differences in space, explicit forward Euler in time.
 """
 
 import numpy as np
@@ -117,7 +121,7 @@ def solve_diffusion(
     Solve 1D hydrogen diffusion through pipe wall using explicit finite differences.
 
     Uses forward Euler with stability check (Courant condition).
-    Includes stress-assisted diffusion term (Oriani).
+    Includes the stress-drift term, which is zero for a uniform sigma_h.
 
     Parameters
     ----------
@@ -172,24 +176,21 @@ def solve_diffusion(
     t_stored.append(0.0)
     C_stored.append(C.copy())
 
+    d2sigma_dx2 = (sigma_h[2:] - 2.0 * sigma_h[1:-1] + sigma_h[:-2]) / dx ** 2
+    dsigma_dx_in = dsigma_dx[1:-1]
+
     t_current = 0.0
     for step in range(1, n_steps + 1):
         C_new = C.copy()
 
         # Interior nodes: explicit finite differences
-        for i in range(1, n - 1):
-            # Standard diffusion term
-            d2C_dx2 = (C[i + 1] - 2.0 * C[i] + C[i - 1]) / dx ** 2
+        d2C_dx2 = (C[2:] - 2.0 * C[1:-1] + C[:-2]) / dx ** 2
 
-            # Stress-assisted term: d/dx(C * dsigma/dx)
-            # = dC/dx * dsigma/dx + C * d2sigma/dx2
-            dC_dx = (C[i + 1] - C[i - 1]) / (2.0 * dx)
-            d2sigma_dx2_i = (sigma_h[min(i + 1, n - 1)] - 2.0 * sigma_h[i]
-                             + sigma_h[max(i - 1, 0)]) / dx ** 2
+        # Stress term: d/dx(C * dsigma/dx) = dC/dx * dsigma/dx + C * d2sigma/dx2
+        dC_dx = (C[2:] - C[:-2]) / (2.0 * dx)
+        stress_term = stress_coeff * (dC_dx * dsigma_dx_in + C[1:-1] * d2sigma_dx2)
 
-            stress_term = stress_coeff * (dC_dx * dsigma_dx[i] + C[i] * d2sigma_dx2_i)
-
-            C_new[i] = C[i] + dt * D_L * (d2C_dx2 + stress_term)
+        C_new[1:-1] = C[1:-1] + dt * D_L * (d2C_dx2 - stress_term)
 
         # Enforce BCs
         C_new[0] = C_0

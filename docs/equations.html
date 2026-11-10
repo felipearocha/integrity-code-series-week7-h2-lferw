@@ -116,26 +116,26 @@
 <div class="toc">
   <strong>Contents</strong>
   <ol>
-    <li><a href="#diffusion">Hydrogen Diffusion (Oriani stress-assisted Fick)</a></li>
+    <li><a href="#diffusion">Hydrogen Diffusion (Fick with a stress-drift term)</a></li>
     <li><a href="#stress">Wall Stress Field (Lame) &amp; Sievert Boundary Condition</a></li>
     <li><a href="#pit">Pit Growth &amp; Murakami SIF</a></li>
     <li><a href="#transition">Pit-to-Crack Transition (El Haddad + degraded threshold)</a></li>
     <li><a href="#facg">Hydrogen-Assisted Fatigue Crack Growth (modified Paris)</a></li>
     <li><a href="#failure">Failure Criterion (hydrogen-degraded toughness)</a></li>
-    <li><a href="#maop">MAOP under ASME B31.12</a></li>
+    <li><a href="#maop">MAOP in the ASME B31.12 form</a></li>
   </ol>
 </div>
 
 <!-- ─────────────────────────────────────────────────────────── -->
-<h2 id="diffusion">1. Hydrogen Diffusion — Oriani Stress-Assisted Fick's Law</h2>
+<h2 id="diffusion">1. Hydrogen Diffusion — Fick's Law With a Stress-Drift Term</h2>
 
 <h3>1.1 Through-wall diffusion PDE</h3>
 <div class="eq-card">
 $$
-\frac{\partial C_L}{\partial t} \;=\; D_L\,\frac{\partial^2 C_L}{\partial x^2} \;+\; D_L\,\frac{V_H}{RT}\,\frac{\partial}{\partial x}\!\left(C_L\,\frac{\partial \sigma_h}{\partial x}\right)
+\frac{\partial C_L}{\partial t} \;=\; D_L\,\frac{\partial^2 C_L}{\partial x^2} \;-\; D_L\,\frac{V_H}{RT}\,\frac{\partial}{\partial x}\!\left(C_L\,\frac{\partial \sigma_h}{\partial x}\right)
 $$
 with lattice concentration $C_L$ [mol/m³], lattice diffusivity $D_L$, partial molar volume of H in Fe $V_H$, and hydrostatic stress $\sigma_h$. Solved by the method of lines (central differences in space, explicit stepping with a Courant stability limit $\Delta t \le \Delta x^2/2D_L$).
-<p class="src">SOURCE: Oriani stress-assisted Fick's law [SOURCE]. Constants $D_L=1.3\times10^{-10}$ m²/s, $V_H=2.0\times10^{-6}$ m³/mol — $D_L$ [ASSUMED] (typical BCC iron at 298 K); $V_H$ literature consensus.</p>
+<p class="src">SOURCE: Fick's law with a hydrostatic-stress drift term. For the Lamé field $\sigma_h$ is uniform, so the drift term is zero. Constants $D_L=1.3\times10^{-10}$ m²/s, $V_H=2.0\times10^{-6}$ m³/mol — $D_L$ [ASSUMED] (typical BCC iron at 298 K); $V_H$ literature consensus.</p>
 <p>Code: <span class="code-ref">src/hydrogen_diffusion.py → solve_diffusion</span>.</p>
 </div>
 
@@ -184,7 +184,7 @@ with $f_{\text{seam}}$ the ERW-seam selective-corrosion enhancement and $t$ in s
 <h3>3.2 Murakami $\sqrt{\text{area}}$ stress intensity</h3>
 <div class="eq-card">
 $$
-K_{\text{pit}} \;=\; 0.65\,\sigma\,\sqrt{\pi\sqrt{\text{area}}},
+\Delta K_{\text{pit}} \;=\; 0.65\,\Delta\sigma\,\sqrt{\pi\sqrt{\text{area}}},
 \qquad
 \text{area} = \frac{\pi}{2}\,c\,a,
 \qquad
@@ -220,10 +220,10 @@ $$
 <h3>4.2 El Haddad intrinsic defect size</h3>
 <div class="eq-card">
 $$
-a_{th} \;=\; \frac{1}{\pi}\left(\frac{K_{th}}{F\,\sigma}\right)^{2},
+a_{th} \;=\; \frac{1}{\pi}\left(\frac{K_{th}}{F\,\Delta\sigma}\right)^{2},
 \qquad F = 1.12
 $$
-Transition to a propagating crack is declared when either $K_{\text{pit}} \ge K_{th}(C_H)$ (stress-intensity criterion) or $a_{\text{pit}} \ge a_{th}$ (El Haddad short-crack criterion) is first met.
+Transition to a propagating crack is declared when either $\Delta K_{\text{pit}} \ge K_{th}(C_H)$ (stress-intensity criterion) or $a_{\text{pit}} \ge a_{th}$ (El Haddad short-crack criterion) is first met.
 <p class="src">SOURCE: El Haddad short-crack intrinsic defect size [SOURCE]; geometry factor $F=1.12$ for a semi-elliptical surface crack.</p>
 <p>Code: <span class="code-ref">src/pit_to_crack.py → el_haddad_threshold_depth, evaluate_pit_state</span>.</p>
 </div>
@@ -249,7 +249,7 @@ K \;=\; F\,\sigma\,\sqrt{\pi a},
 F = 1.12\,\sqrt{\sec\!\left(\frac{\pi a}{2t}\right)}
 $$
 <div class="note">A constant shallow-crack factor $F=1.12$ with a finite-thickness (secant) correction is used [ASSUMED]. The full parametric Newman-Raju solution (dependence on $a/t$, $a/c$, and angular position) is noted in the source as the production-grade replacement.</div>
-<p class="src">SOURCE: Newman-Raju semi-elliptical surface crack, simplified [SOURCE]; $a/c=0.5$ [ASSUMED].</p>
+<p class="src">SOURCE: Newman-Raju semi-elliptical surface crack, simplified [SOURCE].</p>
 <p>Code: <span class="code-ref">src/ha_fcg.py → newman_raju_simplified</span>.</p>
 </div>
 
@@ -269,15 +269,15 @@ Fracture is declared when the maximum stress intensity reaches the hydrogen-degr
 </div>
 
 <!-- ─────────────────────────────────────────────────────────── -->
-<h2 id="maop">7. MAOP under ASME B31.12</h2>
+<h2 id="maop">7. MAOP in the ASME B31.12 form</h2>
 
 <div class="eq-card">
 $$
 P \;=\; \frac{2\,\text{SMYS}\,t\,F\,H_f}{D}
 $$
-with design factor $F=0.50$ for LF-ERW pipe in a Class 1 location and material performance factor $H_f$ from ASME B31.12.
-<p class="src">SOURCE: ASME B31.12 Table PL-3.7.1; $F=0.50$ (LF-ERW, Class 1). $H_f=0.54$ for X52 at 7 MPa H₂ [ASSUMED] (B31.12 Option A).</p>
-<p>Code: <span class="code-ref">src/config.py → OperatingConditions.maop_h2; src/ha_fcg.py → maop_under_b3112</span>.</p>
+with design factor $F=0.50$ and material performance factor $H_f=0.54$, both placeholders <strong>[ASSUMED]</strong>.
+<p class="src">SOURCE: form of the ASME B31.12 design equation. $F$ and $H_f$ are not read from the code book.</p>
+<p>Code: <span class="code-ref">src/ha_fcg.py → maop_under_b3112</span>.</p>
 </div>
 
 <div class="disclaimer">
@@ -285,7 +285,7 @@ with design factor $F=0.50$ for LF-ERW pipe in a Class 1 location and material p
 </div>
 
 <footer>
-  Integrity Code Series — Week 7 · Felipe Rocha · 182 / 182 tests passing<br>
+  Integrity Code Series — Week 7 · Felipe Rocha · 191 / 191 tests passing<br>
   Browse the rendered panels in <code>assets/</code> for visual results.
 </footer>
 
