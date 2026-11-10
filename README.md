@@ -40,9 +40,9 @@ Pressure dominates through the stress. Diffusivity has no influence: the wall re
 
 The fracture life above is not a safe life: see the FAD note in [Limitations](#limitations).
 
-![Hydrogen field and crack growth](assets/hero_h2_crack.png)
+![Hydrogen concentration through the wall over the first week, and crack depth versus fatigue cycles to fracture](assets/hero_h2_crack.png)
 
-![Monte Carlo remaining life](assets/mc_cdf.png)
+![Monte Carlo remaining life: CDF with P5, P50 and P95, and histogram with the censored runouts at the cycle cap](assets/mc_cdf.png)
 
 ## Governing Equations
 
