@@ -118,6 +118,13 @@ def plot_hero_diffusion_crack(diffusion_result, life_result, geom,
         ax2.set_xlabel("Fatigue cycles, $N$")
         ax2.set_ylabel("Crack depth, $a$ [mm]")
         ax2.set_title("(b)  HA-FCG at ERW seam", loc="left")
+        if life_result.failure_mode != "no_failure":
+            ax2.plot(cyc[-1], a_mm[-1], "s", color=_DRED, ms=5, zorder=5)
+            ax2.annotate(f"{life_result.failure_mode.replace('_', ' ')}\n"
+                         f"N = {life_result.failure_cycle:,}",
+                         xy=(cyc[-1], a_mm[-1]), xytext=(-8, 0),
+                         textcoords="offset points", ha="right", va="center",
+                         fontsize=8, color=_DRED)
         ax2.legend(fontsize=7.5, loc="upper left")
         ax2.minorticks_on()
 
@@ -155,11 +162,13 @@ def plot_monte_carlo_cdf(mc_result, save_path="assets/mc_cdf.png"):
     cdf = np.arange(1, len(srl)+1) / len(srl)
 
     # Detect right-censoring threshold (cluster of samples at max value)
+    # Lives are clipped at the simulation cap, so censored samples tie exactly
+    # at the maximum; an uncensored maximum is a single sample.
     max_life = srl[-1]
-    censor_tol = max_life * 0.02  # within 2% of max = censored
-    n_censored = int(np.sum(rl >= max_life - censor_tol))
+    censor_tol = max_life * 0.02  # bin spacing guard for the histogram
+    n_censored = int(np.sum(np.isclose(rl, max_life)))
     frac_censored = n_censored / len(rl)
-    has_censoring = frac_censored > 0.10  # flag if >10% censored
+    has_censoring = n_censored > 1
 
     # CDF
     ax1.step(srl, cdf, where="post", color=_NAV, lw=1.3)
@@ -171,7 +180,7 @@ def plot_monte_carlo_cdf(mc_result, save_path="assets/mc_cdf.png"):
                  fontsize=8, color=cl, rotation=90, va="bottom")
 
     if has_censoring:
-        ax1.annotate(f"{frac_censored:.0%} right-censored\n(simulation cap)",
+        ax1.annotate(f"{frac_censored:.1%} right-censored\n(simulation cap)",
                      xy=(max_life, 1.0 - frac_censored), xytext=(max_life*0.55, 0.5),
                      fontsize=8, color=_G60, ha="center",
                      arrowprops=dict(arrowstyle="->", color=_G60, lw=0.7))
@@ -183,30 +192,31 @@ def plot_monte_carlo_cdf(mc_result, save_path="assets/mc_cdf.png"):
 
     # Histogram: separate censored from uncensored
     if has_censoring:
-        rl_uncensored = rl[rl < max_life - censor_tol]
+        rl_uncensored = rl[~np.isclose(rl, max_life)]
         bin_max = max_life - censor_tol if len(rl_uncensored) > 0 else max_life
-        bins = np.linspace(0, bin_max * 1.05, 35)
+        bins = np.linspace(0, bin_max, 35)
 
         ax2.hist(rl_uncensored, bins=bins, color=_STL,
                  edgecolor="white", lw=0.3, alpha=0.8, label="Observed failures")
 
         # Censored bar: placed at the right edge, hatched
         bar_width = bins[1] - bins[0] if len(bins) > 1 else 5
-        bar_x = bin_max * 1.05 + bar_width * 0.5
+        bar_x = bin_max + bar_width * 1.5
         ax2.bar(bar_x, n_censored, width=bar_width, color=_G80,
                 edgecolor=_CHAR, linewidth=0.5, hatch="//", alpha=0.7,
-                label=f"Censored (>{max_life:.0f} yr): {n_censored}")
-        ax2.legend(fontsize=7.5, loc="upper center")
+                label=f"Censored at cap ({max_life:.0f} yr): {n_censored}")
+        ax2.legend(fontsize=7.5, loc="upper right")
     else:
         bins = np.linspace(0, max(srl)*1.05, 40)
         ax2.hist(rl, bins=bins, color=_STL, edgecolor="white", lw=0.3, alpha=0.8)
 
     ym = ax2.get_ylim()[1]
+    # Both labels sit right of the 20 yr line so neither line crosses a label
     ax2.axvline(10, color=_DRED, ls="-", lw=0.9)
-    ax2.text(12, ym*0.92, f"10 yr: {mc_result.fraction_below_10yr:.0%}",
+    ax2.text(26, ym*0.97, f"< 10 yr: {mc_result.fraction_below_10yr:.1%}",
              fontsize=7.5, color=_DRED, va="top")
     ax2.axvline(20, color=_ORNG, ls="-", lw=0.9)
-    ax2.text(22, ym*0.80, f"20 yr: {mc_result.fraction_below_20yr:.0%}",
+    ax2.text(26, ym*0.91, f"< 20 yr: {mc_result.fraction_below_20yr:.1%}",
              fontsize=7.5, color=_ORNG, va="top")
     ax2.set_xlabel("Remaining life [years]")
     ax2.set_ylabel("Count")
@@ -266,6 +276,14 @@ def plot_surrogate_parity(surrogate_result, save_path="assets/surrogate_parity.p
     ax1.set_ylabel("GBR surrogate [years]")
     ax1.set_title(f"(a)  Parity (R$^2$ = {surrogate_result.r2_test:.3f},"
                   f"  MAE = {surrogate_result.mae_test:.1f} yr)", loc="left")
+    # LHS lives are clipped at the sweep's cycle cap; mark the tied runouts
+    cap = yt.max()
+    n_cap = int(np.sum(np.isclose(yt, cap)))
+    if n_cap > 1:
+        ax1.axvline(cap, color=_G60, lw=0.7, ls=":", zorder=2)
+        ax1.text(cap - lm * 0.01, lm * 0.03,
+                 f"cycle cap, {cap:.0f} yr\n({n_cap} runouts)",
+                 ha="right", va="bottom", fontsize=7.5, color=_G60)
     ax1.set_xlim(lims); ax1.set_ylim(lims)
     ax1.set_aspect("equal"); ax1.minorticks_on()
 
@@ -349,8 +367,9 @@ def plot_iso_risk_contour(lhs_params, lhs_lives, param_names,
     life_max = min(LI.max(), 150)
     levels = np.linspace(0, life_max, 25)
     cf = ax.contourf(PI, AI_mm, LI, levels=levels, cmap="RdYlGn", extend="max")
-    cb = fig.colorbar(cf, ax=ax, pad=0.02, aspect=30)
-    cb.set_label("Remaining life [years]", fontsize=10)
+    cb = fig.colorbar(cf, ax=ax, pad=0.02, aspect=30,
+                      ticks=np.arange(0, life_max + 1e-9, 25))
+    cb.set_label(f"Remaining life [years] (arrow: > {life_max:.0f})", fontsize=10)
     cb.ax.tick_params(labelsize=8.5)
 
     # Threshold contours
@@ -421,9 +440,9 @@ def plot_fad(life_result, geom, mat, he, p_max_MPa,
     Lr_env = np.linspace(0, L_r_cut, 200)
     Kr_env = fad_curve(Lr_env)
 
-    # Fill unsafe region
-    ax.fill_between(Lr_env, Kr_env, 1.5, color="#f5e6e6", alpha=0.5, zorder=1)
-    ax.fill_betweenx([0, 1.5], L_r_cut, 1.8, color="#f5e6e6", alpha=0.5, zorder=1)
+    # Fill unsafe region: above the envelope and everywhere right of the cut-off
+    ax.fill_between(Lr_env, Kr_env, 2.0, color="#f5e6e6", alpha=0.5, zorder=1)
+    ax.fill_betweenx([0, 2.0], L_r_cut, 3.5, color="#f5e6e6", alpha=0.5, zorder=1)
     ax.plot(Lr_env, Kr_env, color=_DRED, lw=1.6, zorder=4, label="FAD envelope (API 579-1 Level 2)")
     ax.axvline(L_r_cut, color=_DRED, lw=1.0, ls="--", zorder=4)
 
@@ -459,9 +478,11 @@ def plot_fad(life_result, geom, mat, he, p_max_MPa,
         cb.set_label("Fatigue cycles, $N$", fontsize=9.5)
         cb.ax.tick_params(labelsize=8.5)
 
-        # Start and end markers
+        # Start and end markers. The start point uses C_H = 0 (no hydrogen
+        # yet, undegraded K_IC), so it sits below the first charged point.
         ax.plot(Lr_traj[0], Kr_traj[0], "o", color=_TEAL, ms=7, zorder=6,
-                markeredgecolor="white", markeredgewidth=0.8, label="Start")
+                markeredgecolor="white", markeredgewidth=0.8,
+                label=r"Start ($C_{\mathrm{H}}$ = 0)")
         ax.plot(Lr_traj[-1], Kr_traj[-1], "s", color=_DRED, ms=7, zorder=6,
                 markeredgecolor="white", markeredgewidth=0.8, label="End")
 
@@ -506,7 +527,7 @@ def plot_fad(life_result, geom, mat, he, p_max_MPa,
 # ============================================================
 def generate_gif(diffusion_result, life_result, geom,
                  save_path="assets/h2_crack_evolution.gif",
-                 n_frames=40, fps=4):
+                 n_frames=40, fps=4, ops=None):
     """
     Animated GIF with engineering-style presentation.
     Left: H2 concentration profile with filled area.
@@ -519,25 +540,26 @@ def generate_gif(diffusion_result, life_result, geom,
     from matplotlib.patches import Rectangle
     from matplotlib.colors import Normalize
     from matplotlib.cm import ScalarMappable
+    if ops is None:
+        from config import default_config
+        ops = default_config()["ops"]
+    # Same clock as ha_fcg.run_life_prediction: cycle N happens at
+    # N * seconds_per_cycle, and the diffusion field is clamped at its last time.
+    seconds_per_cycle = 365.25 * 24 * 3600 / ops.cycles_per_year
 
     x_mm = diffusion_result.x_grid * 1000.0
     wall_mm = geom.wall_thickness_m * 1000.0
-    n_av = len(diffusion_result.t_grid)
-    fidxs = np.linspace(0, n_av-1, n_frames, dtype=int)
     c_max = max(diffusion_result.C_field.max() * 1.12, 0.01)
     n_x = len(x_mm)
 
     frames = []
 
-    for fi, f_idx in enumerate(fidxs):
+    for fi in range(n_frames):
         fig = plt.figure(figsize=(12.5, 5.2))
         gs = fig.add_gridspec(1, 3, width_ratios=[1.3, 0.05, 0.8], wspace=0.08)
         ax1 = fig.add_subplot(gs[0, 0])
         ax_cb = fig.add_subplot(gs[0, 1])
         ax2 = fig.add_subplot(gs[0, 2])
-
-        t_d = diffusion_result.t_grid[f_idx] / 86400.0
-        C_p = diffusion_result.C_field[f_idx]
 
         frac = fi / max(n_frames-1, 1)
         if len(life_result.crack_history_a) > 2:
@@ -548,6 +570,12 @@ def generate_gif(diffusion_result, life_result, geom,
         else:
             cmm = life_result.initial_pit_depth_m * 1000.0; cn = 0
 
+        # Hydrogen profile at the time of this crack state (clamped as in the solver)
+        t_s = cn * seconds_per_cycle
+        f_idx = int(np.argmin(np.abs(diffusion_result.t_grid
+                                     - min(t_s, diffusion_result.t_grid[-1]))))
+        C_p = diffusion_result.C_field[f_idx]
+
         # Left: concentration profile
         ax1.fill_between(x_mm, 0, C_p, color=_STL, alpha=0.18)
         ax1.plot(x_mm, C_p, color=_NAV, lw=1.3)
@@ -555,8 +583,8 @@ def generate_gif(diffusion_result, life_result, geom,
         ax1.set_xlim(0, wall_mm); ax1.set_ylim(0, c_max)
         ax1.set_xlabel("Depth [mm]")
         ax1.set_ylabel(r"$C_{\mathrm{H}}$ [mol m$^{-3}$]")
-        ax1.set_title(f"t = {t_d:.0f} d  |  N = {cn:,}  |  a = {cmm:.2f} mm",
-                      loc="left", fontsize=9.5)
+        ax1.set_title(f"t = {t_s / (365.25 * 86400):.1f} yr  |  N = {cn:,}  |  "
+                      f"a = {cmm:.2f} mm", loc="left", fontsize=9.5)
         ax1.minorticks_on()
 
         # Right: color-mapped wall cross-section
@@ -625,10 +653,10 @@ def generate_gif(diffusion_result, life_result, geom,
         sm = ScalarMappable(cmap=cmap, norm=norm)
         sm.set_array([])
         cb = fig.colorbar(sm, cax=ax_cb)
-        cb.set_label(r"$C_{\mathrm{H}}$", fontsize=8)
+        cb.set_label(r"$C_{\mathrm{H}}$ [mol m$^{-3}$]", fontsize=8)
         cb.ax.tick_params(labelsize=7)
 
-        fig.suptitle("ICS2 Week 7 :  H$_2$ conversion of aging LF-ERW pipeline",
+        fig.suptitle("Week 7: H$_2$ conversion of aging LF-ERW pipeline",
                      fontsize=10.5, y=0.99, color=_CHAR)
 
         buf = io.BytesIO()

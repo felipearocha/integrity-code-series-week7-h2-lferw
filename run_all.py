@@ -78,7 +78,8 @@ def main():
                           save_path=os.path.join(out, "iso_risk_contour.png"),
                           surrogate_model=surr.model)
     plot_fad(life, geom, mat, he, ops.p_max_MPa, save_path=os.path.join(out, "fad.png"))
-    generate_gif(diff, life, geom, save_path=os.path.join(out, "h2_crack_evolution.gif"))
+    generate_gif(diff, life, geom, ops=ops,
+                 save_path=os.path.join(out, "h2_crack_evolution.gif"))
     print(f"All outputs generated in {out}")
 
 
