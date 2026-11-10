@@ -58,12 +58,14 @@ def main():
 
     print(f"Running LHS sweep ({sim.n_lhs_samples:,} samples)...")
     lhs = run_lhs_sweep(geom, mat, h2t, he, pit, ops, sim, workers=workers)
+    print(f"Censored at the cycle cap: {lhs.censored.sum()} of {lhs.n_samples}")
     print("Spearman correlations:")
     for k, v in sorted(lhs.spearman_correlations.items(), key=lambda x: -abs(x[1])):
         print(f"  {k}: {v:.3f}")
 
-    print("Training GBR surrogate...")
-    surr = train_surrogate(lhs.params, lhs.remaining_life_years, lhs.param_names)
+    print("Training GBR surrogate on the runs that fail before the cap...")
+    ok = ~lhs.censored
+    surr = train_surrogate(lhs.params[ok], lhs.remaining_life_years[ok], lhs.param_names)
     print(f"R2 test: {surr.r2_test:.3f}")
     for k, v in validate_feature_ranking(surr.feature_importances).items():
         print(f"  {k}: {v}")

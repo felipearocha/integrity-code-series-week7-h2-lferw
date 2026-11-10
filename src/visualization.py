@@ -249,8 +249,10 @@ def plot_sensitivity_tornado(spearman_corrs, save_path="assets/sensitivity_torna
     ax.set_xlim(-1.0, 1.0); ax.minorticks_on()
     for i, v in enumerate(vals):
         off = 0.025 * np.sign(v)
-        ax.text(v+off, i, f"{v:+.3f}", va="center",
-                ha="left" if v>=0 else "right", fontsize=8, color=_CHAR)
+        inside = abs(v) > 0.75   # a label outside would run into the axis edge
+        ax.text(v-off if inside else v+off, i, f"{v:+.3f}", va="center",
+                ha=("left" if v >= 0 else "right") if not inside else ("right" if v >= 0 else "left"),
+                fontsize=8, color="white" if inside else _CHAR)
 
     _ensure_dir(save_path)
     fig.savefig(save_path); plt.close(fig)

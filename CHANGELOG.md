@@ -8,6 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Fixed
+- LHS censoring: the sweep stopped at 100,000 cycles (274 yr), below the 279 yr default case, so 723 of 2,000 runs (154 of the 390 held-out runs) sat at the cap and Spearman rho and the surrogate were fitted to the capped value. The cap is now 1,000,000 cycles (2,740 yr): 43 runs (2.2%) censored. Censored runs are flagged and left out of the surrogate. Spearman rho: p_H2 -0.832 -> -0.855, pit depth -0.431 -> -0.460, K_IC +0.117 -> +0.109, c/a +0.026 -> +0.025, D_L +0.001 -> +0.004. Surrogate R^2 0.997 -> 0.993, MAE 3.5 -> 19.0 yr (lives now span 0 to 2,740 yr). Tornado, parity and iso-risk figures regenerated.
 - Sign of the stress-drift term in the diffusion PDE: hydrogen now moves toward tension. With a linear test field C(w/2)/C0 goes 0.3775 -> 0.6225. No effect at the default Lame field, where sigma_h is uniform.
 - `f_seam` was sampled and never used. It now scales pit depth in the Monte Carlo and is removed from the LHS sweep, which samples pit depth directly (6 -> 5 parameters).
 - Pit-to-crack transition compares the threshold with the stress range: at a = 0.15 mm, K 5.25 -> dK 2.63 MPa sqrt(m); El Haddad a_th 0.040 -> 0.159 mm.

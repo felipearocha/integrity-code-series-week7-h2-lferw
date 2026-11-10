@@ -1,6 +1,6 @@
 """
 INTEGRITY CODE SERIES -- Week 7
-Comprehensive Test Suite: 191 tests
+Comprehensive Test Suite: 192 tests
 
 Categories:
     A. Configuration and parameter validation (18)
@@ -1251,6 +1251,32 @@ class TestSeamFactorIsLive:
                              cfg["h2_embrittlement"], cfg["pit"], cfg["ops"], cfg["sim"])
         assert "f_seam" not in r.param_names
         assert r.params.shape == (8, 5)
+
+    def test_lhs_cap_clears_default_life_and_flags_censoring(self, cfg, monkeypatch):
+        """The default case fails at 101,801 cycles (279 yr). At the old LHS cap of
+        100,000 cycles 723 of 2,000 runs were censored around it, and rho and the
+        surrogate were fitted to the capped value. The cap must clear the default
+        life by a wide margin, and runs with no failure must be flagged."""
+        import monte_carlo as mc
+        caps = []
+
+        class Runout:
+            failure_mode = "no_failure"
+            pit_transitioned = False
+
+        def stub(*a, **k):
+            caps.append(a[6].max_cycles)
+            r = Runout()
+            r.failure_cycle = a[6].max_cycles
+            return r
+
+        cfg["sim"].n_lhs_samples = 4
+        monkeypatch.setattr(mc, "solve_diffusion", lambda *a, **k: None)
+        monkeypatch.setattr(mc, "run_life_prediction", stub)
+        r = mc.run_lhs_sweep(cfg["geom"], cfg["mat"], cfg["h2_transport"],
+                             cfg["h2_embrittlement"], cfg["pit"], cfg["ops"], cfg["sim"])
+        assert min(caps) >= 5 * 101_801
+        assert r.censored.all()
 
 
 class LifeStub:
