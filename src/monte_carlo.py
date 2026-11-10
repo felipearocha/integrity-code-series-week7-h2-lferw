@@ -34,6 +34,11 @@ from config import (
 from hydrogen_diffusion import solve_diffusion
 from ha_fcg import run_life_prediction, cycles_to_years
 
+# LHS cycle cap: 1,000,000 cycles is 2,740 years at one cycle a day, ten times the
+# default-case life (279 yr). At the old 100,000 cycles (274 yr) 723 of 2,000 runs
+# were censored, including the region around the default case.
+LHS_MAX_CYCLES = 1_000_000
+
 
 @dataclass
 class MonteCarloResult:
@@ -235,6 +240,7 @@ class LHSResult:
     remaining_life_years: np.ndarray
     failure_modes: List[str]
     spearman_correlations: Dict[str, float]
+    censored: np.ndarray         # no failure by the cap: life > cap, value held at the cap
 
 
 def run_lhs_sweep(
@@ -277,7 +283,7 @@ def run_lhs_sweep(
     sim_fast = SimControl(
         n_wall_nodes=30,
         dt_diffusion_s=200.0,
-        max_cycles=100_000,
+        max_cycles=LHS_MAX_CYCLES,
         da_increment_m=sim.da_increment_m,
         n_mc_samples=sim.n_mc_samples,
         mc_seed=sim.mc_seed,
@@ -325,8 +331,11 @@ def run_lhs_sweep(
     results = _map_samples(jobs, workers)
     remaining_lives = np.array([r[0] for r in results])
     failure_modes = [r[1] for r in results]
+    censored = np.array([m == "no_failure" for m in failure_modes], dtype=bool)
 
-    # Spearman rank correlation for sensitivity
+    # Spearman rank correlation for sensitivity. Censored runs tie at the cap,
+    # above every failure, which is their true rank order against failures;
+    # only their order among themselves is lost, so keep them few (see cap).
     from scipy.stats import spearmanr
     correlations = {}
     for j, name in enumerate(param_names):
@@ -340,4 +349,5 @@ def run_lhs_sweep(
         remaining_life_years=remaining_lives,
         failure_modes=failure_modes,
         spearman_correlations=correlations,
+        censored=censored,
     )

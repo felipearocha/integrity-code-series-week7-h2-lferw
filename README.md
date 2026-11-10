@@ -4,7 +4,7 @@
 [![CI](https://github.com/felipearocha/integrity-code-series-week7-h2-lferw/actions/workflows/ci.yml/badge.svg)](https://github.com/felipearocha/integrity-code-series-week7-h2-lferw/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
-[![Tests: 191 passing](https://img.shields.io/badge/tests-191%20passing-brightgreen.svg)](tests)
+[![Tests: 192 passing](https://img.shields.io/badge/tests-192%20passing-brightgreen.svg)](tests)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20172481.svg)](https://doi.org/10.5281/zenodo.20172481)
 
 ---
@@ -26,15 +26,17 @@ From `python run_all.py`, with the default [ASSUMED] parameters. These are model
 | Default case, 0.82 mm pit, 7 MPa | Fracture at 101,801 cycles (279 years) |
 | Monte Carlo, 10,000 samples | P5 = 47 yr, P50 = 189 yr, P95 = 431 yr |
 | Fraction of samples below 10 yr | 0.8% |
-| Surrogate on held-out LHS runs | R² = 0.997, MAE = 3.5 yr |
+| Surrogate on held-out LHS runs that fail before the cap | R² = 0.993, MAE = 19.0 yr |
 
 | LHS parameter (2,000 samples) | Spearman rho |
 |-------------------------------|--------------|
-| Hydrogen pressure | -0.83 |
-| Initial pit depth | -0.43 |
-| Seam toughness K_IC | +0.12 |
-| Aspect ratio c/a | +0.03 |
+| Hydrogen pressure | -0.86 |
+| Initial pit depth | -0.46 |
+| Seam toughness K_IC | +0.11 |
+| Aspect ratio c/a | +0.02 |
 | Diffusivity D_L | 0.00 |
+
+The LHS sweep runs to 1,000,000 cycles (2,740 years). 43 of the 2,000 runs (2.2%) reach that cap without failing. They tie at the cap in the Spearman ranks, above every failure, and are left out of the surrogate.
 
 Pressure dominates through the stress. Diffusivity has no influence: the wall reaches its steady hydrogen profile within days, while crack growth takes decades.
 
@@ -130,7 +132,7 @@ integrity-code-series-week7-h2-lferw/
         cybersecurity.py             # STRIDE, audit chain, sensor integrity
         visualization.py             # All plots + animated GIF
     tests/
-        test_suite.py                # 191 tests
+        test_suite.py                # 192 tests
     docs/
         equations.html               # Rendered (MathJax) governing equations
     assets/                          # Generated visuals
@@ -151,7 +153,7 @@ python -m pytest tests/ -v
 # 3. Smoke-run the whole chain: 20 MC + 60 LHS samples, figures to a temp folder (about 2 minutes)
 python run_all.py --quick
 
-# 4. Full run: 10,000 MC + 2,000 LHS samples, regenerates assets/ (about 30 minutes on 24 cores)
+# 4. Full run: 10,000 MC + 2,000 LHS samples, regenerates assets/ (about 35 minutes on 24 cores)
 python run_all.py
 ```
 
@@ -174,7 +176,7 @@ All parameters flagged [ASSUMED] in config.py. Critical ones:
 - **The default case runs above the MAOP.** 7 MPa is 78% of SMYS and 2.9 times the placeholder MAOP of 2.42 MPa. It is a stress case, not a proposed operating point.
 - **Pits do not grow in hydrogen service.** Pit depth is fixed at conversion; only a crack grows.
 - **Plastic collapse does not end the life calculation.** Life stops at $K_{\max} \ge K_{IC}$ or at 90% wall. The FAD trajectory of the default case leaves the envelope much earlier, at about 60,000 cycles (164 years), so the 279-year figure is a fracture life, not a safe life.
-- **Life is capped.** Monte Carlo stops at 200,000 cycles (548 years) and the LHS sweep at 100,000 cycles (274 years).
+- **Life is capped.** Monte Carlo stops at 200,000 cycles (548 years; 1.3% of samples censored) and the LHS sweep at 1,000,000 cycles (2,740 years; 2.2% censored). The surrogate predicts only lives that end in failure before the cap.
 
 ## Cybersecurity (STRIDE)
 
